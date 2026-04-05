@@ -1,0 +1,10 @@
+data.db
+node_modules/
+dist/
+.env
+.env.local
+*.exe
+
+.agents
+.claude
+.github
