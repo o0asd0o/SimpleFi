@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"simple-fi/auth"
@@ -15,7 +16,14 @@ import (
 func main() {
 	loadEnv(".env")
 
-	db, err := store.New("data.db")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "data.db"
+	}
+	if dir := filepath.Dir(dbPath); dir != "." {
+		os.MkdirAll(dir, 0755)
+	}
+	db, err := store.New(dbPath)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}
@@ -25,7 +33,11 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Public auth routes
+	// Public routes
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
+	})
 	mux.HandleFunc("POST /api/auth/register", handler.HandleRegister(db, jwtSecret))
 	mux.HandleFunc("POST /api/auth/login", handler.HandleLogin(db, jwtSecret))
 	mux.HandleFunc("POST /api/auth/reset-password", handler.HandleResetPassword(db))
@@ -47,8 +59,17 @@ func main() {
 	protected.HandleFunc("GET /api/me", handler.HandleGetMe(db))
 	mux.Handle("/api/", auth.RequireAuth(jwtSecret, protected))
 
-	log.Println("Server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", corsMiddleware(mux)))
+	// Serve frontend static files when STATIC_DIR is set
+	if dir := os.Getenv("STATIC_DIR"); dir != "" {
+		mux.Handle("/", spaHandler(dir))
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Server running on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(mux)))
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -63,6 +84,20 @@ func corsMiddleware(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// spaHandler serves static files from dir, falling back to index.html for SPA routes.
+func spaHandler(dir string) http.Handler {
+	fs := http.FileServer(http.Dir(dir))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If the file exists on disk, serve it directly
+		if _, err := os.Stat(filepath.Join(dir, r.URL.Path)); err == nil {
+			fs.ServeHTTP(w, r)
+			return
+		}
+		// SPA fallback: serve index.html for client-side routing
+		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
 	})
 }
 
