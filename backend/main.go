@@ -46,6 +46,8 @@ func main() {
 	protected := http.NewServeMux()
 	protected.HandleFunc("GET /api/transactions", handler.HandleListTransactions(db))
 	protected.HandleFunc("POST /api/transactions", handler.HandleCreateTransaction(db))
+	protected.HandleFunc("DELETE /api/transactions/{id}", handler.HandleDeleteTransaction(db))
+	protected.HandleFunc("PUT /api/transactions/{id}", handler.HandleUpdateTransaction(db))
 	protected.HandleFunc("GET /api/statistics", handler.HandleGetStatistics(db))
 	protected.HandleFunc("GET /api/analytics", handler.HandleGetAnalytics(db))
 	protected.HandleFunc("GET /api/accounts", handler.HandleListAccounts(db))

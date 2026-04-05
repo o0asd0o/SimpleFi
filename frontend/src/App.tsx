@@ -1,6 +1,6 @@
 import { createSignal, Show } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
-import { type AuthResponse } from "./lib/api";
+import { type AuthResponse, type Transaction } from "./lib/api";
 import BalanceHeader from "./components/BalanceHeader";
 import TransactionSheet from "./components/TransactionSheet";
 import RecentList from "./components/RecentList";
@@ -14,6 +14,7 @@ export default function App() {
   const [token, setToken] = createSignal(localStorage.getItem("token"));
   const [passphrase, setPassphrase] = createSignal<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = createSignal(false);
+  const [editingTx, setEditingTx] = createSignal<Transaction | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
   const [activeView, setActiveView] = createSignal<"home" | "analytics">("home");
   const queryClient = useQueryClient();
@@ -43,7 +44,7 @@ export default function App() {
 
         <Show when={activeView() === "home"}>
           <AccountStrip />
-          <RecentList />
+          <RecentList onEdit={(tx) => { setEditingTx(tx); setIsSheetOpen(true); }} />
         </Show>
 
         <Show when={activeView() === "analytics"}>
@@ -54,7 +55,7 @@ export default function App() {
         <button
           type="button"
           aria-label="Add transaction"
-          onClick={() => setIsSheetOpen(true)}
+          onClick={() => { setEditingTx(null); setIsSheetOpen(true); }}
           class="fixed bottom-8 right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
         >
           +
@@ -62,7 +63,10 @@ export default function App() {
 
         {/* Transaction sheet */}
         <Show when={isSheetOpen()}>
-          <TransactionSheet onClose={() => setIsSheetOpen(false)} />
+          <TransactionSheet
+            editTransaction={editingTx() ?? undefined}
+            onClose={() => { setIsSheetOpen(false); setEditingTx(null); }}
+          />
         </Show>
 
         {/* Sidebar menu */}
