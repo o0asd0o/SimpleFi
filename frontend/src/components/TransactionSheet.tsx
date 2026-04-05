@@ -31,6 +31,7 @@ export default function TransactionSheet(props: Props) {
   }));
 
   const categories = () => categoriesQuery.data ?? [];
+  const filteredCategories = () => categories().filter((c) => c.type === mode());
 
   // Set default account and category selection once data is available
   createEffect(() => {
@@ -43,10 +44,13 @@ export default function TransactionSheet(props: Props) {
 
   createEffect(() => {
     const cats = categoriesQuery.data;
-    if (cats && cats.length > 0 && !categoryId()) {
-      const general = cats.find((c) => c.name === "General");
-      setCategoryId(general?.id ?? cats[0].id);
-    }
+    const m = mode();
+    if (!cats || m === "transfer") return;
+    const typed = cats.filter((c) => c.type === m);
+    if (typed.length === 0) return;
+    const defaultName = m === "expense" ? "General" : "Salary";
+    const def = typed.find((c) => c.name === defaultName);
+    setCategoryId(def?.id ?? typed[0].id);
   });
 
   onMount(() => {
@@ -271,7 +275,7 @@ export default function TransactionSheet(props: Props) {
             </button>
           </div>
           <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-            <For each={categories()}>
+            <For each={filteredCategories()}>
               {(cat) => (
                 <button
                   type="button"
@@ -291,7 +295,10 @@ export default function TransactionSheet(props: Props) {
         </Show>
 
         <Show when={showManageCategories()}>
-          <ManageCategoriesModal onClose={() => setShowManageCategories(false)} />
+          <ManageCategoriesModal
+            categoryType={mode() === "income" ? "income" : "expense"}
+            onClose={() => setShowManageCategories(false)}
+          />
         </Show>
 
         {/* Description */}

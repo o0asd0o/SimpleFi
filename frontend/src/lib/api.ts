@@ -16,6 +16,7 @@ export type Category = {
   id: string;
   name: string;
   icon: string;
+  type: "expense" | "income";
   sort_order: number;
   created_at: string;
 };
@@ -196,6 +197,7 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function createCategory(data: {
   name: string;
   icon: string;
+  type: "expense" | "income";
 }): Promise<Category> {
   const res = await apiFetch("/api/categories", {
     method: "POST",
