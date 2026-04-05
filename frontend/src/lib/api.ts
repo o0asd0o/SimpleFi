@@ -97,10 +97,27 @@ async function apiFetch(path: string, options?: RequestInit): Promise<Response> 
   return res;
 }
 
-export async function fetchTransactions(): Promise<Transaction[]> {
-  const res = await apiFetch("/api/transactions");
+export type TransactionPage = {
+  items: Transaction[];
+  next_cursor?: string;
+};
+
+export async function fetchTransactions(
+  limit = 15,
+  cursor?: string,
+): Promise<TransactionPage> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
+  const res = await apiFetch(`/api/transactions?${params}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");
   return res.json();
+}
+
+export async function fetchAllTransactions(): Promise<Transaction[]> {
+  const res = await apiFetch("/api/transactions?limit=100");
+  if (!res.ok) throw new Error("Failed to fetch transactions");
+  const page: TransactionPage = await res.json();
+  return page.items;
 }
 
 export async function createTransaction(

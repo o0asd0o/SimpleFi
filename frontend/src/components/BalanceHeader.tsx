@@ -1,5 +1,5 @@
 import { createQuery } from "@tanstack/solid-query";
-import { fetchTransactions, fetchAccounts, fetchMe } from "../lib/api";
+import { fetchAllTransactions, fetchAccounts, fetchMe } from "../lib/api";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(n);
@@ -18,8 +18,8 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
     queryFn: fetchAccounts,
   }));
   const transactionsQuery = createQuery(() => ({
-    queryKey: ["transactions"],
-    queryFn: fetchTransactions,
+    queryKey: ["transactions-summary"],
+    queryFn: fetchAllTransactions,
   }));
 
   const accounts = () => accountsQuery.data ?? [];

@@ -1,13 +1,4 @@
-/**
- * Generates trendy PNG icons for the SimpleFi PWA using Sharp.
- * Run: node scripts/generate-icons.cjs
- */
-const fs = require("fs");
-const path = require("path");
-const sharp = require("sharp");
 
-// Trendy modern logo SVG (a stylized 'S' with a gradient and simple shapes)
-const svgSting = `
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -36,23 +27,3 @@ const svgSting = `
     <circle cx="210" cy="250" r="24" fill="#60a5fa" /> <!-- Blue 400 dot -->
   </g>
 </svg>
-`;
-
-const publicDir = path.join(__dirname, "..", "public");
-if (!fs.existsSync(publicDir)) {
-  fs.mkdirSync(publicDir, { recursive: true });
-}
-
-async function run() {
-  for (const size of [192, 512]) {
-    const dest = path.join(publicDir, `icon-${size}.png`);
-    await sharp(Buffer.from(svgSting)).resize(size, size).png().toFile(dest);
-    console.log("✓ Generated trendy " + dest);
-  }
-
-  // Also create a standalone svg file for the favicon or anywhere else
-  fs.writeFileSync(path.join(publicDir, "logo.svg"), svgSting);
-  console.log("✓ Generated logo.svg");
-}
-
-run().catch(console.error);

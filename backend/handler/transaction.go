@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"simple-fi/auth"
@@ -14,13 +15,22 @@ import (
 func HandleListTransactions(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
-		txs, err := model.List(db, userID)
+
+		limit := 15
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 100 {
+				limit = n
+			}
+		}
+		cursor := r.URL.Query().Get("cursor")
+
+		page, err := model.List(db, userID, limit, cursor)
 		if err != nil {
 			http.Error(w, "failed to list transactions", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(txs)
+		json.NewEncoder(w).Encode(page)
 	}
 }
 

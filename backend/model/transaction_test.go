@@ -40,14 +40,14 @@ func TestCreateAndList(t *testing.T) {
 	}
 
 	// List returns both
-	txs, err := model.List(db, testUserID)
+	page, err := model.List(db, testUserID, 100, "")
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
-	if len(txs) != 2 {
-		t.Fatalf("expected 2 transactions, got %d", len(txs))
+	if len(page.Items) != 2 {
+		t.Fatalf("expected 2 transactions, got %d", len(page.Items))
 	}
-	ids := map[string]bool{txs[0].ID: true, txs[1].ID: true}
+	ids := map[string]bool{page.Items[0].ID: true, page.Items[1].ID: true}
 	if !ids[income.ID] || !ids[expense.ID] {
 		t.Error("expected both transactions in list")
 	}
@@ -146,19 +146,19 @@ func TestCreateTransfer(t *testing.T) {
 	}
 
 	// Verify transfer is in list
-	txs, err := model.List(db, testUserID)
+	page, err := model.List(db, testUserID, 100, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(txs) != 1 {
-		t.Fatalf("expected 1 transaction, got %d", len(txs))
+	if len(page.Items) != 1 {
+		t.Fatalf("expected 1 transaction, got %d", len(page.Items))
 	}
-	if txs[0].Type != "transfer" {
-		t.Errorf("expected type 'transfer', got %q", txs[0].Type)
+	if page.Items[0].Type != "transfer" {
+		t.Errorf("expected type 'transfer', got %q", page.Items[0].Type)
 	}
 
 	// Verify transfer excluded from statistics
-	month := txs[0].CreatedAt.Format("2006-01")
+	month := page.Items[0].CreatedAt.Format("2006-01")
 	stats, err := model.Statistics(db, testUserID, month)
 	if err != nil {
 		t.Fatal(err)
@@ -187,19 +187,19 @@ func TestCrossUserIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	txs1, _ := model.List(db, user1)
-	txs2, _ := model.List(db, user2)
+	p1, _ := model.List(db, user1, 100, "")
+	p2, _ := model.List(db, user2, 100, "")
 
-	if len(txs1) != 1 {
-		t.Errorf("user1: expected 1 transaction, got %d", len(txs1))
+	if len(p1.Items) != 1 {
+		t.Errorf("user1: expected 1 transaction, got %d", len(p1.Items))
 	}
-	if len(txs2) != 1 {
-		t.Errorf("user2: expected 1 transaction, got %d", len(txs2))
+	if len(p2.Items) != 1 {
+		t.Errorf("user2: expected 1 transaction, got %d", len(p2.Items))
 	}
-	if txs1[0].Amount != 100 {
-		t.Errorf("user1: expected amount 100, got %.2f", txs1[0].Amount)
+	if p1.Items[0].Amount != 100 {
+		t.Errorf("user1: expected amount 100, got %.2f", p1.Items[0].Amount)
 	}
-	if txs2[0].Amount != 200 {
-		t.Errorf("user2: expected amount 200, got %.2f", txs2[0].Amount)
+	if p2.Items[0].Amount != 200 {
+		t.Errorf("user2: expected amount 200, got %.2f", p2.Items[0].Amount)
 	}
 }

@@ -45,18 +45,42 @@ type AnalyticsResult struct {
 
 var ErrInvalidPeriod = errors.New("invalid period: use 30d, month, ytd, or lastyear")
 
-func List(db *sql.DB, userID string) ([]Transaction, error) {
-	rows, err := db.Query(
-		`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
-		        COALESCE(t.description, ''),
-		        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''), t.created_at
-		 FROM transactions t
-		 LEFT JOIN categories c ON c.id = t.category_id
-		 WHERE t.user_id = ? ORDER BY t.created_at DESC`,
-		userID,
-	)
+type TransactionPage struct {
+	Items      []Transaction `json:"items"`
+	NextCursor string        `json:"next_cursor,omitempty"`
+}
+
+func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage, error) {
+	if limit <= 0 {
+		limit = 15
+	}
+
+	var rows *sql.Rows
+	var err error
+
+	if cursor == "" {
+		rows, err = db.Query(
+			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
+			        COALESCE(t.description, ''),
+			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''), t.created_at
+			 FROM transactions t
+			 LEFT JOIN categories c ON c.id = t.category_id
+			 WHERE t.user_id = ? ORDER BY t.created_at DESC LIMIT ?`,
+			userID, limit+1,
+		)
+	} else {
+		rows, err = db.Query(
+			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
+			        COALESCE(t.description, ''),
+			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''), t.created_at
+			 FROM transactions t
+			 LEFT JOIN categories c ON c.id = t.category_id
+			 WHERE t.user_id = ? AND t.created_at < ? ORDER BY t.created_at DESC LIMIT ?`,
+			userID, cursor, limit+1,
+		)
+	}
 	if err != nil {
-		return nil, err
+		return TransactionPage{}, err
 	}
 	defer rows.Close()
 
@@ -66,12 +90,21 @@ func List(db *sql.DB, userID string) ([]Transaction, error) {
 		var createdAt string
 		if err := rows.Scan(&tx.ID, &tx.Amount, &tx.Type, &tx.Category, &tx.CategoryID, &tx.Description,
 			&tx.AccountID, &tx.ToAccountID, &createdAt); err != nil {
-			return nil, err
+			return TransactionPage{}, err
 		}
 		tx.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
 		txs = append(txs, tx)
 	}
-	return txs, rows.Err()
+	if err := rows.Err(); err != nil {
+		return TransactionPage{}, err
+	}
+
+	page := TransactionPage{Items: txs}
+	if len(txs) > limit {
+		page.Items = txs[:limit]
+		page.NextCursor = txs[limit-1].CreatedAt.Format(time.RFC3339)
+	}
+	return page, nil
 }
 
 func Create(db *sql.DB, tx Transaction, userID string) (Transaction, error) {

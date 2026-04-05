@@ -1,7 +1,9 @@
-import { For, Show } from "solid-js";
-import { createQuery } from "@tanstack/solid-query";
+import { createEffect, For, on, Show } from "solid-js";
+import { createInfiniteQuery, createQuery } from "@tanstack/solid-query";
 import { fetchTransactions, fetchAccounts, fetchCategories } from "../lib/api";
 import { cn } from "../lib/cn";
+
+const PAGE_SIZE = 15;
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -21,10 +23,14 @@ const fmt = (n: number) =>
   }).format(n);
 
 export default function RecentList() {
-  const transactionsQuery = createQuery(() => ({
+  const txQuery = createInfiniteQuery(() => ({
     queryKey: ["transactions"],
-    queryFn: fetchTransactions,
+    queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
+      fetchTransactions(PAGE_SIZE, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.next_cursor,
   }));
+
   const accountsQuery = createQuery(() => ({
     queryKey: ["accounts"],
     queryFn: fetchAccounts,
@@ -34,22 +40,56 @@ export default function RecentList() {
     queryFn: fetchCategories,
   }));
 
-  const transactions = () => transactionsQuery.data ?? [];
+  const transactions = () =>
+    txQuery.data?.pages.flatMap((p) => p.items) ?? [];
   const accountName = (id: string) =>
     (accountsQuery.data ?? []).find((a) => a.id === id)?.name ?? "";
   const categoryIcon = (id: string) =>
     (categoriesQuery.data ?? []).find((c) => c.id === id)?.icon ?? "";
+
+  // Intersection observer for triggering next page load
+  let sentinelRef: HTMLDivElement | undefined;
+  let observer: IntersectionObserver | undefined;
+
+  const setupObserver = (el: HTMLDivElement) => {
+    sentinelRef = el;
+    observer?.disconnect();
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && txQuery.hasNextPage && !txQuery.isFetchingNextPage) {
+          txQuery.fetchNextPage();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+  };
+
+  // Re-trigger observer check when query state changes
+  createEffect(
+    on(
+      () => [txQuery.hasNextPage, txQuery.isFetchingNextPage] as const,
+      () => {
+        if (sentinelRef && observer) {
+          observer.disconnect();
+          observer.observe(sentinelRef);
+        }
+      },
+    ),
+  );
 
   return (
     <section aria-label="Recent transactions">
       <Show
         when={transactions().length > 0}
         fallback={
-          <div class="text-center py-20 px-6">
-            <p class="text-3xl mb-3">💸</p>
-            <p class="text-white font-medium mb-1">No transactions yet</p>
-            <p class="text-gray-500 text-sm">Tap + to log your first one</p>
-          </div>
+          <Show when={!txQuery.isLoading}>
+            <div class="text-center py-20 px-6">
+              <p class="text-3xl mb-3">💸</p>
+              <p class="text-white font-medium mb-1">No transactions yet</p>
+              <p class="text-gray-500 text-sm">Tap + to log your first one</p>
+            </div>
+          </Show>
         }
       >
         <ul>
@@ -115,6 +155,15 @@ export default function RecentList() {
             )}
           </For>
         </ul>
+
+        {/* Sentinel — triggers next page when scrolled near */}
+        <div ref={setupObserver}>
+          <Show when={txQuery.isFetchingNextPage}>
+            <div class="flex justify-center py-6">
+              <div class="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          </Show>
+        </div>
       </Show>
     </section>
   );

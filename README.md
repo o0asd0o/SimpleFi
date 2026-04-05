@@ -25,7 +25,7 @@ Log expenses in seconds — tap the FAB, enter the amount, pick a category, done
 Single binary. Single database file. No external services.
 
 | Layer    | Tech                          | Why                                      |
-|----------|-------------------------------|------------------------------------------|
+| -------- | ----------------------------- | ---------------------------------------- |
 | Frontend | SolidJS + Vite + Tailwind CSS | Zero VDOM, reactive signals, fast builds |
 | Backend  | Go 1.22+ (stdlib router)      | Fast, single-binary, zero-dep deploy     |
 | Database | SQLite (pure Go driver)       | Embedded, zero config, no server needed  |
@@ -108,12 +108,12 @@ Open [http://localhost:5173](http://localhost:5173). The frontend proxies API ca
 
 ### Environment Variables
 
-| Variable     | Default               | Description                      |
-|--------------|-----------------------|----------------------------------|
-| `JWT_SECRET` | auto-generated        | HMAC key for signing JWTs        |
-| `DB_PATH`    | `data.db`             | Path to the SQLite database file |
-| `PORT`       | `8080`                | Server listen port               |
-| `STATIC_DIR` | *(unset in dev)*      | Path to built frontend assets    |
+| Variable     | Default          | Description                      |
+| ------------ | ---------------- | -------------------------------- |
+| `JWT_SECRET` | auto-generated   | HMAC key for signing JWTs        |
+| `DB_PATH`    | `data.db`        | Path to the SQLite database file |
+| `PORT`       | `8080`           | Server listen port               |
+| `STATIC_DIR` | _(unset in dev)_ | Path to built frontend assets    |
 
 ## Deploy with Docker
 
@@ -130,6 +130,7 @@ docker run -d \
 ```
 
 The image is a multi-stage build (~30MB final):
+
 1. **Node** — builds the frontend with Vite
 2. **Go** — compiles the backend to a static binary
 3. **Alpine** — runs the binary, serves the frontend as static files
@@ -148,25 +149,25 @@ The container exposes a health check at `GET /api/health` which Coolify uses to 
 
 All endpoints are prefixed with `/api/`. Auth routes are public; everything else requires a `Bearer` token.
 
-| Method | Path                       | Auth | Description                  |
-|--------|----------------------------|------|------------------------------|
-| GET    | `/api/health`              | No   | Health check                 |
-| POST   | `/api/auth/register`       | No   | Create account               |
-| POST   | `/api/auth/login`          | No   | Get JWT token                |
-| POST   | `/api/auth/reset-password` | No   | Reset password via passphrase|
-| GET    | `/api/me`                  | Yes  | Current user info            |
-| GET    | `/api/transactions`        | Yes  | List transactions            |
-| POST   | `/api/transactions`        | Yes  | Create transaction           |
-| GET    | `/api/statistics`          | Yes  | Category stats by month      |
-| GET    | `/api/analytics`           | Yes  | Spending breakdown by period |
-| GET    | `/api/accounts`            | Yes  | List accounts                |
-| POST   | `/api/accounts`            | Yes  | Create account               |
-| PUT    | `/api/accounts/{id}`       | Yes  | Update account               |
-| DELETE | `/api/accounts/{id}`       | Yes  | Delete account               |
-| GET    | `/api/categories`          | Yes  | List categories              |
-| POST   | `/api/categories`          | Yes  | Create category              |
-| PUT    | `/api/categories/{id}`     | Yes  | Update category              |
-| DELETE | `/api/categories/{id}`     | Yes  | Delete category              |
+| Method | Path                       | Auth | Description                   |
+| ------ | -------------------------- | ---- | ----------------------------- |
+| GET    | `/api/health`              | No   | Health check                  |
+| POST   | `/api/auth/register`       | No   | Create account                |
+| POST   | `/api/auth/login`          | No   | Get JWT token                 |
+| POST   | `/api/auth/reset-password` | No   | Reset password via passphrase |
+| GET    | `/api/me`                  | Yes  | Current user info             |
+| GET    | `/api/transactions`        | Yes  | List transactions             |
+| POST   | `/api/transactions`        | Yes  | Create transaction            |
+| GET    | `/api/statistics`          | Yes  | Category stats by month       |
+| GET    | `/api/analytics`           | Yes  | Spending breakdown by period  |
+| GET    | `/api/accounts`            | Yes  | List accounts                 |
+| POST   | `/api/accounts`            | Yes  | Create account                |
+| PUT    | `/api/accounts/{id}`       | Yes  | Update account                |
+| DELETE | `/api/accounts/{id}`       | Yes  | Delete account                |
+| GET    | `/api/categories`          | Yes  | List categories               |
+| POST   | `/api/categories`          | Yes  | Create category               |
+| PUT    | `/api/categories/{id}`     | Yes  | Update category               |
+| DELETE | `/api/categories/{id}`     | Yes  | Delete category               |
 
 ## Future Improvements
 
