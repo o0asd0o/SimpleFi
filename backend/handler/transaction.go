@@ -74,6 +74,66 @@ func HandleCreateTransaction(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+func HandleUpdateTransaction(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		var tx model.Transaction
+		if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if tx.Amount <= 0 {
+			http.Error(w, "amount must be greater than 0", http.StatusBadRequest)
+			return
+		}
+		if tx.Type != "income" && tx.Type != "expense" && tx.Type != "transfer" {
+			http.Error(w, "type must be 'income', 'expense', or 'transfer'", http.StatusBadRequest)
+			return
+		}
+		if tx.Type == "transfer" {
+			if tx.AccountID == "" || tx.ToAccountID == "" {
+				http.Error(w, "transfer requires account_id and to_account_id", http.StatusBadRequest)
+				return
+			}
+			if tx.AccountID == tx.ToAccountID {
+				http.Error(w, "cannot transfer to same account", http.StatusBadRequest)
+				return
+			}
+		}
+
+		userID := auth.UserIDFromContext(r.Context())
+		updated, err := model.Update(db, id, tx, userID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "transaction not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "failed to update transaction", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(updated)
+	}
+}
+
+func HandleDeleteTransaction(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		userID := auth.UserIDFromContext(r.Context())
+		if err := model.Delete(db, id, userID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "transaction not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "failed to delete transaction", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func HandleGetStatistics(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		month := r.URL.Query().Get("month")

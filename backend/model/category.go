@@ -14,19 +14,21 @@ type Category struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Icon      string    `json:"icon"`
+	Type      string    `json:"type"`
 	SortOrder int       `json:"sort_order"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// DefaultCategoryIDs are the stable IDs used for the 6 seeded categories.
+// DefaultCategoryIDs are the stable IDs used for the seeded categories.
 var DefaultCategoryIDs = []string{
 	"cat-food", "cat-transport", "cat-bills",
 	"cat-entertainment", "cat-salary", "cat-general",
+	"cat-gift", "cat-others",
 }
 
 func ListCategoriesForUser(db *sql.DB, userID string) ([]Category, error) {
 	rows, err := db.Query(`
-		SELECT c.id, c.name, c.icon, c.sort_order, c.created_at
+		SELECT c.id, c.name, c.icon, c.type, c.sort_order, c.created_at
 		FROM categories c
 		JOIN user_categories uc ON uc.category_id = c.id
 		WHERE uc.user_id = ?
@@ -41,7 +43,7 @@ func ListCategoriesForUser(db *sql.DB, userID string) ([]Category, error) {
 	for rows.Next() {
 		var c Category
 		var createdAt string
-		if err := rows.Scan(&c.ID, &c.Name, &c.Icon, &c.SortOrder, &createdAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Icon, &c.Type, &c.SortOrder, &createdAt); err != nil {
 			return nil, err
 		}
 		c.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
@@ -50,17 +52,21 @@ func ListCategoriesForUser(db *sql.DB, userID string) ([]Category, error) {
 	return cats, rows.Err()
 }
 
-func CreateCategory(db *sql.DB, name, icon, userID string) (Category, error) {
+func CreateCategory(db *sql.DB, name, icon, catType, userID string) (Category, error) {
+	if catType == "" {
+		catType = "expense"
+	}
 	c := Category{
 		ID:        uuid.NewString(),
 		Name:      name,
 		Icon:      icon,
+		Type:      catType,
 		CreatedAt: time.Now().UTC(),
 	}
 
 	_, err := db.Exec(
-		`INSERT INTO categories (id, name, icon, created_at) VALUES (?, ?, ?, ?)`,
-		c.ID, c.Name, c.Icon, c.CreatedAt.Format(time.RFC3339),
+		`INSERT INTO categories (id, name, icon, type, created_at) VALUES (?, ?, ?, ?, ?)`,
+		c.ID, c.Name, c.Icon, c.Type, c.CreatedAt.Format(time.RFC3339),
 	)
 	if err != nil {
 		return Category{}, err

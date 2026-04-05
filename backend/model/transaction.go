@@ -141,6 +141,56 @@ func Create(db *sql.DB, tx Transaction, userID string) (Transaction, error) {
 	return tx, nil
 }
 
+func Update(db *sql.DB, id string, tx Transaction, userID string) (Transaction, error) {
+	if tx.Type == "transfer" {
+		tx.Category = ""
+		tx.CategoryID = ""
+	} else if tx.CategoryID == "" && tx.Category == "" {
+		tx.Category = "General"
+	}
+
+	var accountID, toAccountID, categoryID *string
+	if tx.AccountID != "" {
+		accountID = &tx.AccountID
+	}
+	if tx.ToAccountID != "" {
+		toAccountID = &tx.ToAccountID
+	}
+	if tx.CategoryID != "" {
+		categoryID = &tx.CategoryID
+	}
+
+	res, err := db.Exec(
+		`UPDATE transactions SET amount=?, type=?, category=?, category_id=?, description=?,
+		        account_id=?, to_account_id=?
+		 WHERE id=? AND user_id=?`,
+		tx.Amount, tx.Type, tx.Category, categoryID, tx.Description,
+		accountID, toAccountID, id, userID,
+	)
+	if err != nil {
+		return Transaction{}, err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return Transaction{}, sql.ErrNoRows
+	}
+
+	tx.ID = id
+	return tx, nil
+}
+
+func Delete(db *sql.DB, id, userID string) error {
+	res, err := db.Exec(`DELETE FROM transactions WHERE id = ? AND user_id = ?`, id, userID)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 func Statistics(db *sql.DB, userID string, month string) ([]CategoryStat, error) {
 	rows, err := db.Query(
 		`SELECT COALESCE(c.name, t.category), COALESCE(c.icon, ''), SUM(t.amount)

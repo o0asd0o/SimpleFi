@@ -28,6 +28,7 @@ func HandleCreateCategory(db *sql.DB) http.HandlerFunc {
 		var body struct {
 			Name string `json:"name"`
 			Icon string `json:"icon"`
+			Type string `json:"type"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -41,9 +42,13 @@ func HandleCreateCategory(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "icon is required", http.StatusBadRequest)
 			return
 		}
+		if body.Type != "" && body.Type != "expense" && body.Type != "income" {
+			http.Error(w, "type must be 'expense' or 'income'", http.StatusBadRequest)
+			return
+		}
 
 		userID := auth.UserIDFromContext(r.Context())
-		created, err := model.CreateCategory(db, body.Name, body.Icon, userID)
+		created, err := model.CreateCategory(db, body.Name, body.Icon, body.Type, userID)
 		if err != nil {
 			http.Error(w, "failed to create category", http.StatusInternalServerError)
 			return

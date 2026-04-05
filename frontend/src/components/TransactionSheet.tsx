@@ -1,24 +1,43 @@
 import { createEffect, createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/solid-query";
-import { createTransaction, fetchAccounts, fetchCategories } from "../lib/api";
+import { createTransaction, updateTransaction, fetchAccounts, fetchCategories, type Transaction } from "../lib/api";
 import { cn } from "../lib/cn";
 import ManageCategoriesModal from "./ManageCategoriesModal";
 
 type Props = {
   onClose: () => void;
+  editTransaction?: Transaction;
 };
 
 export default function TransactionSheet(props: Props) {
-  const [amount, setAmount] = createSignal("");
-  const [categoryId, setCategoryId] = createSignal("");
-  const [description, setDescription] = createSignal("");
-  const [accountId, setAccountId] = createSignal("");
-  const [toAccountId, setToAccountId] = createSignal("");
-  const [mode, setMode] = createSignal<"expense" | "income" | "transfer">("expense");
+  const editing = () => props.editTransaction;
+  const [amount, setAmount] = createSignal(editing()?.amount?.toString() ?? "");
+  const [categoryId, setCategoryId] = createSignal(editing()?.category_id ?? "");
+  const [description, setDescription] = createSignal(editing()?.description ?? "");
+  const [accountId, setAccountId] = createSignal(editing()?.account_id ?? "");
+  const [toAccountId, setToAccountId] = createSignal(editing()?.to_account_id ?? "");
+  const [mode, setMode] = createSignal<"expense" | "income" | "transfer">(editing()?.type ?? "expense");
   const [showManageCategories, setShowManageCategories] = createSignal(false);
   let inputRef: HTMLInputElement | undefined;
 
   const queryClient = useQueryClient();
+
+  const formattedAmount = () => {
+    const raw = amount();
+    if (!raw) return "";
+    const parts = raw.split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+  };
+
+  const handleAmountInput = (e: InputEvent) => {
+    const val = (e.currentTarget as HTMLInputElement).value;
+    // Strip commas, keep only digits and one decimal point
+    const stripped = val.replace(/[^0-9.]/g, "");
+    const parts = stripped.split(".");
+    const clean = parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : stripped;
+    setAmount(clean);
+  };
 
   const accountsQuery = createQuery(() => ({
     queryKey: ["accounts"],
@@ -31,22 +50,28 @@ export default function TransactionSheet(props: Props) {
   }));
 
   const categories = () => categoriesQuery.data ?? [];
+  const filteredCategories = () => categories().filter((c) => c.type === mode());
 
-  // Set default account and category selection once data is available
+  // Set default account selection once data is available (skip if editing with pre-set values)
   createEffect(() => {
     const accs = accountsQuery.data;
     if (accs && accs.length > 0 && !accountId()) {
       setAccountId(accs[0].id);
-      if (accs.length > 1) setToAccountId(accs[1].id);
+      if (accs.length > 1 && !toAccountId()) setToAccountId(accs[1].id);
     }
   });
 
   createEffect(() => {
     const cats = categoriesQuery.data;
-    if (cats && cats.length > 0 && !categoryId()) {
-      const general = cats.find((c) => c.name === "General");
-      setCategoryId(general?.id ?? cats[0].id);
-    }
+    const m = mode();
+    if (!cats || m === "transfer") return;
+    // Skip default category selection if editing already has a category set
+    if (editing() && categoryId()) return;
+    const typed = cats.filter((c) => c.type === m);
+    if (typed.length === 0) return;
+    const defaultName = m === "expense" ? "General" : "Salary";
+    const def = typed.find((c) => c.name === defaultName);
+    setCategoryId(def?.id ?? typed[0].id);
   });
 
   onMount(() => {
@@ -65,7 +90,10 @@ export default function TransactionSheet(props: Props) {
   });
 
   const mutation = createMutation(() => ({
-    mutationFn: createTransaction,
+    mutationFn: (data: Parameters<typeof createTransaction>[0]) =>
+      editing()
+        ? updateTransaction(editing()!.id, data)
+        : createTransaction(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transactions-summary"] });
@@ -110,7 +138,7 @@ export default function TransactionSheet(props: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Add transaction"
+        aria-label={editing() ? "Edit transaction" : "Add transaction"}
         class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-h-[90vh] overflow-y-auto"
       >
         {/* Handle bar */}
@@ -123,11 +151,11 @@ export default function TransactionSheet(props: Props) {
         <input
           id="amount-input"
           ref={inputRef}
-          type="number"
+          type="text"
           inputMode="decimal"
           placeholder="0.00"
-          value={amount()}
-          onInput={(e) => setAmount(e.currentTarget.value)}
+          value={formattedAmount()}
+          onInput={handleAmountInput}
           class="w-full text-6xl font-bold bg-transparent text-white text-center outline-none mb-2 placeholder:text-white/20"
         />
         <p class="text-center text-gray-500 text-sm mb-6">Enter amount</p>
@@ -271,7 +299,7 @@ export default function TransactionSheet(props: Props) {
             </button>
           </div>
           <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-            <For each={categories()}>
+            <For each={filteredCategories()}>
               {(cat) => (
                 <button
                   type="button"
@@ -291,7 +319,10 @@ export default function TransactionSheet(props: Props) {
         </Show>
 
         <Show when={showManageCategories()}>
-          <ManageCategoriesModal onClose={() => setShowManageCategories(false)} />
+          <ManageCategoriesModal
+            categoryType={mode() === "income" ? "income" : "expense"}
+            onClose={() => setShowManageCategories(false)}
+          />
         </Show>
 
         {/* Description */}
@@ -317,11 +348,13 @@ export default function TransactionSheet(props: Props) {
                 : "bg-blue-600 hover:bg-blue-500",
           )}
         >
-          {mode() === "expense"
-            ? "Add Expense"
-            : mode() === "transfer"
-              ? "Transfer"
-              : "Add Income"}
+          {editing()
+            ? "Save Changes"
+            : mode() === "expense"
+              ? "Add Expense"
+              : mode() === "transfer"
+                ? "Transfer"
+                : "Add Income"}
         </button>
       </div>
     </>

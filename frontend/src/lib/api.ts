@@ -16,6 +16,7 @@ export type Category = {
   id: string;
   name: string;
   icon: string;
+  type: "expense" | "income";
   sort_order: number;
   created_at: string;
 };
@@ -120,6 +121,24 @@ export async function fetchAllTransactions(): Promise<Transaction[]> {
   return page.items;
 }
 
+export async function deleteTransaction(id: string): Promise<void> {
+  const res = await apiFetch(`/api/transactions/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete transaction");
+}
+
+export async function updateTransaction(
+  id: string,
+  data: CreateTransactionInput,
+): Promise<Transaction> {
+  const res = await apiFetch(`/api/transactions/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update transaction");
+  return res.json();
+}
+
 export async function createTransaction(
   data: CreateTransactionInput,
 ): Promise<Transaction> {
@@ -196,6 +215,7 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function createCategory(data: {
   name: string;
   icon: string;
+  type: "expense" | "income";
 }): Promise<Category> {
   const res = await apiFetch("/api/categories", {
     method: "POST",

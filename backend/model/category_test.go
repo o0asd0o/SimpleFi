@@ -24,8 +24,8 @@ func TestSeedAndListCategories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListCategoriesForUser: %v", err)
 	}
-	if len(cats) != 6 {
-		t.Fatalf("expected 6 default categories, got %d", len(cats))
+	if len(cats) != 8 {
+		t.Fatalf("expected 8 default categories, got %d", len(cats))
 	}
 
 	// Check first and last
@@ -36,7 +36,17 @@ func TestSeedAndListCategories(t *testing.T) {
 		t.Errorf("expected icon '🍔', got %q", cats[0].Icon)
 	}
 	if cats[5].Name != "General" {
-		t.Errorf("expected last category 'General', got %q", cats[5].Name)
+		t.Errorf("expected 6th category 'General', got %q", cats[5].Name)
+	}
+	// Check income categories
+	if cats[4].Type != "income" {
+		t.Errorf("expected Salary type 'income', got %q", cats[4].Type)
+	}
+	if cats[6].Name != "Gift" {
+		t.Errorf("expected 7th category 'Gift', got %q", cats[6].Name)
+	}
+	if cats[7].Name != "Others" {
+		t.Errorf("expected 8th category 'Others', got %q", cats[7].Name)
 	}
 }
 
@@ -48,7 +58,7 @@ func TestCreateCategory(t *testing.T) {
 	defer db.Close()
 
 	userID := "create-cat-user"
-	cat, err := model.CreateCategory(db, "Health", "🏥", userID)
+	cat, err := model.CreateCategory(db, "Health", "🏥", "expense", userID)
 	if err != nil {
 		t.Fatalf("CreateCategory: %v", err)
 	}
@@ -74,7 +84,7 @@ func TestUpdateCategory(t *testing.T) {
 	defer db.Close()
 
 	userID := "update-cat-user"
-	cat, _ := model.CreateCategory(db, "Old", "⭐", userID)
+	cat, _ := model.CreateCategory(db, "Old", "⭐", "expense", userID)
 
 	updated, err := model.UpdateCategory(db, cat.ID, "New", "🌟")
 	if err != nil {
@@ -96,7 +106,7 @@ func TestRemoveCategoryFromUser(t *testing.T) {
 	defer db.Close()
 
 	userID := "remove-cat-user"
-	cat, _ := model.CreateCategory(db, "Temp", "🗑️", userID)
+	cat, _ := model.CreateCategory(db, "Temp", "🗑️", "expense", userID)
 
 	err = model.RemoveCategoryFromUser(db, cat.ID, userID)
 	if err != nil {
@@ -117,7 +127,7 @@ func TestRemoveCategoryInUse(t *testing.T) {
 	defer db.Close()
 
 	userID := "remove-blocked-user"
-	cat, _ := model.CreateCategory(db, "Used", "📌", userID)
+	cat, _ := model.CreateCategory(db, "Used", "📌", "expense", userID)
 
 	// Create a transaction referencing this category
 	_, err = model.Create(db, model.Transaction{
@@ -146,7 +156,7 @@ func TestCrossUserCategoryIsolation(t *testing.T) {
 	user2 := "cat-user-2"
 
 	model.SeedDefaultCategoriesForUser(db, user1)
-	model.CreateCategory(db, "Custom", "🎯", user1)
+	model.CreateCategory(db, "Custom", "🎯", "expense", user1)
 
 	// user2 has no categories
 	cats2, _ := model.ListCategoriesForUser(db, user2)
@@ -155,7 +165,7 @@ func TestCrossUserCategoryIsolation(t *testing.T) {
 	}
 
 	cats1, _ := model.ListCategoriesForUser(db, user1)
-	if len(cats1) != 7 { // 6 defaults + 1 custom
-		t.Errorf("user1: expected 7 categories, got %d", len(cats1))
+	if len(cats1) != 9 { // 8 defaults + 1 custom
+		t.Errorf("user1: expected 9 categories, got %d", len(cats1))
 	}
 }

@@ -106,19 +106,30 @@ func migrate(db *sql.DB) error {
 		}
 	}
 
+	// Add type column to categories
+	if err := addColumnIfNotExists(db, "categories", "type", "TEXT NOT NULL DEFAULT 'expense'"); err != nil {
+		return err
+	}
+	// Migrate Salary to income type
+	if _, err := db.Exec(`UPDATE categories SET type = 'income' WHERE id = 'cat-salary'`); err != nil {
+		return err
+	}
+
 	// Seed default global categories (idempotent via INSERT OR IGNORE + UNIQUE name)
-	defaultCategories := []struct{ id, name, icon string }{
-		{"cat-food", "Food", "🍔"},
-		{"cat-transport", "Transport", "🚗"},
-		{"cat-bills", "Bills", "🧾"},
-		{"cat-entertainment", "Entertainment", "🎬"},
-		{"cat-salary", "Salary", "💰"},
-		{"cat-general", "General", "📦"},
+	defaultCategories := []struct{ id, name, icon, catType string }{
+		{"cat-food", "Food", "🍔", "expense"},
+		{"cat-transport", "Transport", "🚗", "expense"},
+		{"cat-bills", "Bills", "🧾", "expense"},
+		{"cat-entertainment", "Entertainment", "🎬", "expense"},
+		{"cat-salary", "Salary", "💰", "income"},
+		{"cat-general", "General", "📦", "expense"},
+		{"cat-gift", "Gift", "🎁", "income"},
+		{"cat-others", "Others", "📦", "income"},
 	}
 	for i, c := range defaultCategories {
 		_, err := db.Exec(
-			`INSERT OR IGNORE INTO categories (id, name, icon, sort_order, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-			c.id, c.name, c.icon, i,
+			`INSERT OR IGNORE INTO categories (id, name, icon, type, sort_order, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+			c.id, c.name, c.icon, c.catType, i,
 		)
 		if err != nil {
 			return err

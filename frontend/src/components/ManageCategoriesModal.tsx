@@ -15,6 +15,7 @@ import { cn } from "../lib/cn";
 
 type Props = {
   onClose: () => void;
+  categoryType: "expense" | "income";
 };
 
 export default function ManageCategoriesModal(props: Props) {
@@ -33,6 +34,9 @@ export default function ManageCategoriesModal(props: Props) {
     queryKey: ["categories"],
     queryFn: fetchCategories,
   }));
+
+  const filtered = () =>
+    (categoriesQuery.data ?? []).filter((c) => c.type === props.categoryType);
 
   onMount(() => {
     document.body.style.overflow = "hidden";
@@ -104,7 +108,7 @@ export default function ManageCategoriesModal(props: Props) {
 
   const handleAdd = () => {
     if (!addName().trim() || !addIcon().trim()) return;
-    createMut.mutate({ name: addName().trim(), icon: addIcon().trim() });
+    createMut.mutate({ name: addName().trim(), icon: addIcon().trim(), type: props.categoryType });
   };
 
   const handleDelete = (id: string) => {
@@ -128,7 +132,7 @@ export default function ManageCategoriesModal(props: Props) {
       >
         <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
         <h2 class="text-white font-semibold text-xl text-center mb-6">
-          Manage Categories
+          Manage {props.categoryType === "income" ? "Income" : "Expense"} Categories
         </h2>
 
         <Show when={deleteError()}>
@@ -136,7 +140,7 @@ export default function ManageCategoriesModal(props: Props) {
         </Show>
 
         <div class="space-y-2">
-          <For each={categoriesQuery.data ?? []}>
+          <For each={filtered()}>
             {(cat) => (
               <Show
                 when={editingId() === cat.id}
