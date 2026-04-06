@@ -9,6 +9,8 @@ export type Transaction = {
   description: string;
   account_id: string;
   to_account_id?: string;
+  status: "confirmed" | "pending";
+  recurring_rule_id?: string;
   created_at: string;
 };
 
@@ -53,7 +55,18 @@ export type CreateTransactionInput = {
   description?: string;
   account_id: string;
   to_account_id?: string;
+  recurring?: boolean;
+  frequency?: Frequency;
+  start_date?: string;
+  end_date?: string;
 };
+
+export type Frequency =
+  | "daily"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "yearly";
 
 export type Account = {
   id: string;
@@ -124,6 +137,61 @@ export async function fetchAllTransactions(): Promise<Transaction[]> {
 export async function deleteTransaction(id: string): Promise<void> {
   const res = await apiFetch(`/api/transactions/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete transaction");
+}
+
+export async function confirmTransaction(id: string): Promise<void> {
+  const res = await apiFetch(`/api/transactions/${id}/confirm`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to confirm transaction");
+}
+
+export async function skipTransaction(id: string): Promise<void> {
+  const res = await apiFetch(`/api/transactions/${id}/skip`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to skip transaction");
+}
+
+export type RecurringRule = {
+  id: string;
+  amount: number;
+  type: "income" | "expense" | "transfer";
+  category: string;
+  category_id: string;
+  description: string;
+  account_id: string;
+  to_account_id?: string;
+  frequency: Frequency;
+  next_due: string;
+  end_date?: string;
+  active: boolean;
+  created_at: string;
+};
+
+export async function fetchRecurringRules(): Promise<RecurringRule[]> {
+  const res = await apiFetch("/api/recurring-rules");
+  if (!res.ok) throw new Error("Failed to fetch recurring rules");
+  return res.json();
+}
+
+export async function updateRecurringRule(
+  id: string,
+  data: { frequency: Frequency; next_due: string; end_date?: string },
+): Promise<void> {
+  const res = await apiFetch(`/api/recurring-rules/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update recurring rule");
+}
+
+export async function deleteRecurringRule(id: string): Promise<void> {
+  const res = await apiFetch(`/api/recurring-rules/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete recurring rule");
 }
 
 export async function updateTransaction(

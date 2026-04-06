@@ -65,6 +65,23 @@ func migrate(db *sql.DB) error {
 			PRIMARY KEY (user_id, category_id)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_user_categories_user ON user_categories(user_id)`,
+		`CREATE TABLE IF NOT EXISTS recurring_rules (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			amount REAL NOT NULL,
+			type TEXT NOT NULL,
+			category TEXT DEFAULT '',
+			category_id TEXT,
+			description TEXT,
+			account_id TEXT,
+			to_account_id TEXT,
+			frequency TEXT NOT NULL,
+			next_due TEXT NOT NULL,
+			active INTEGER NOT NULL DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_rules_user_id ON recurring_rules(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_rules_next_due ON recurring_rules(next_due)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := db.Exec(stmt); err != nil {
@@ -93,12 +110,27 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 
+	// Add end_date to recurring_rules
+	if err := addColumnIfNotExists(db, "recurring_rules", "end_date", "TEXT"); err != nil {
+		return err
+	}
+
+	// Add status + recurring_rule_id to transactions
+	if err := addColumnIfNotExists(db, "transactions", "status", "TEXT NOT NULL DEFAULT 'confirmed'"); err != nil {
+		return err
+	}
+	if err := addColumnIfNotExists(db, "transactions", "recurring_rule_id", "TEXT"); err != nil {
+		return err
+	}
+
 	// Indexes
 	indexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_account_id ON transactions(account_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)`,
+		`CREATE INDEX IF NOT EXISTS idx_transactions_recurring_rule_id ON transactions(recurring_rule_id)`,
 	}
 	for _, idx := range indexes {
 		if _, err := db.Exec(idx); err != nil {

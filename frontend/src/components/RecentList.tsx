@@ -1,6 +1,6 @@
 import { createEffect, createSignal, For, on, Show } from "solid-js";
 import { createInfiniteQuery, createMutation, createQuery, useQueryClient } from "@tanstack/solid-query";
-import { deleteTransaction, fetchTransactions, fetchAccounts, fetchCategories, type Transaction } from "../lib/api";
+import { deleteTransaction, confirmTransaction, skipTransaction, deleteRecurringRule, fetchTransactions, fetchAccounts, fetchCategories, type Transaction } from "../lib/api";
 import { cn } from "../lib/cn";
 
 const PAGE_SIZE = 15;
@@ -28,7 +28,16 @@ type Props = {
 
 export default function RecentList(props: Props) {
   const [openId, setOpenId] = createSignal<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = createSignal<string | null>(null);
   const queryClient = useQueryClient();
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    queryClient.invalidateQueries({ queryKey: ["transactions-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    queryClient.invalidateQueries({ queryKey: ["analytics"] });
+    queryClient.invalidateQueries({ queryKey: ["statistics"] });
+  };
 
   const txQuery = createInfiniteQuery(() => ({
     queryKey: ["transactions"],
@@ -57,11 +66,35 @@ export default function RecentList(props: Props) {
   const deleteMut = createMutation(() => ({
     mutationFn: deleteTransaction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      queryClient.invalidateQueries({ queryKey: ["statistics"] });
+      invalidateAll();
+      setOpenId(null);
+    },
+  }));
+
+  const confirmMut = createMutation(() => ({
+    mutationFn: confirmTransaction,
+    onSuccess: () => invalidateAll(),
+  }));
+
+  const skipMut = createMutation(() => ({
+    mutationFn: skipTransaction,
+    onSuccess: () => {
+      invalidateAll();
+      setDeleteConfirmId(null);
+      setOpenId(null);
+    },
+  }));
+
+  const stopRuleMut = createMutation(() => ({
+    mutationFn: async (tx: Transaction) => {
+      if (tx.recurring_rule_id) {
+        await deleteRecurringRule(tx.recurring_rule_id);
+      }
+      await deleteTransaction(tx.id);
+    },
+    onSuccess: () => {
+      invalidateAll();
+      setDeleteConfirmId(null);
       setOpenId(null);
     },
   }));
@@ -135,7 +168,29 @@ export default function RecentList(props: Props) {
               };
 
               return (
-                <li class="overflow-hidden">
+                <li class="overflow-hidden relative">
+                  {/* Skip/Stop confirmation overlay for recurring pending transactions */}
+                  <Show when={deleteConfirmId() === tx.id}>
+                    <div class="absolute inset-0 bg-black/80 flex items-center justify-center gap-3 z-20 px-4">
+                      <button
+                        type="button"
+                        onClick={() => skipMut.mutate(tx.id)}
+                        disabled={skipMut.isPending}
+                        class="flex-1 py-3 rounded-xl bg-white/10 text-white text-sm font-medium disabled:opacity-50"
+                      >
+                        Skip this one
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => stopRuleMut.mutate(tx)}
+                        disabled={stopRuleMut.isPending}
+                        class="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-medium disabled:opacity-50"
+                      >
+                        Stop all future
+                      </button>
+                    </div>
+                  </Show>
+
                   {/* Sliding wrapper — contains row + action buttons side by side */}
                   <div
                     class="flex transition-transform duration-200 ease-out"
@@ -145,7 +200,10 @@ export default function RecentList(props: Props) {
                     onClick={() => { if (isOpen()) setOpenId(null); }}
                   >
                     {/* Row content */}
-                    <div class="flex items-center gap-4 px-6 py-4 border-b border-white/5 w-full flex-shrink-0">
+                    <div class={cn(
+                      "flex items-center gap-4 px-6 py-4 border-b border-white/5 w-full flex-shrink-0",
+                      tx.status === "pending" && "opacity-50",
+                    )}>
                       <div
                         class={cn(
                           "w-2 h-2 rounded-full flex-shrink-0",
@@ -186,6 +244,11 @@ export default function RecentList(props: Props) {
                           >
                             Transfer · {formatDate(tx.created_at)}
                           </Show>
+                          <Show when={tx.recurring_rule_id}>
+                            <svg class="w-3 h-3 text-purple-400 inline ml-1 align-middle" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </Show>
                         </p>
                       </div>
                       <span
@@ -201,6 +264,20 @@ export default function RecentList(props: Props) {
                         {tx.type === "expense" ? "-" : tx.type === "income" ? "+" : ""}
                         ₱{fmt(tx.amount)}
                       </span>
+                      {/* Confirm button for pending transactions */}
+                      <Show when={tx.status === "pending"}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); confirmMut.mutate(tx.id); }}
+                          disabled={confirmMut.isPending}
+                          class="ml-1 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+                          aria-label="Confirm transaction"
+                        >
+                          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                      </Show>
                     </div>
 
                     {/* Edit button — revealed on swipe */}
@@ -219,7 +296,14 @@ export default function RecentList(props: Props) {
                     {/* Delete button — revealed on swipe */}
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); deleteMut.mutate(tx.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (tx.status === "pending" && tx.recurring_rule_id) {
+                          setDeleteConfirmId(tx.id);
+                        } else {
+                          deleteMut.mutate(tx.id);
+                        }
+                      }}
                       disabled={deleteMut.isPending}
                       class="w-[72px] flex-shrink-0 bg-red-500 flex flex-col items-center justify-center gap-1 text-white disabled:opacity-60"
                       aria-label="Delete transaction"
