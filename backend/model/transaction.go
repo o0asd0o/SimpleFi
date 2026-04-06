@@ -68,7 +68,9 @@ func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage,
 			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = ? ORDER BY t.created_at DESC LIMIT ?`,
+			 WHERE t.user_id = ?
+		 ORDER BY (CASE WHEN COALESCE(t.status,'confirmed') = 'pending' THEN 0 ELSE 1 END), t.created_at DESC
+		 LIMIT ?`,
 			userID, limit+1,
 		)
 	} else {
@@ -79,7 +81,8 @@ func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage,
 			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = ? AND t.created_at < ? ORDER BY t.created_at DESC LIMIT ?`,
+			 WHERE t.user_id = ? AND t.created_at < ? AND COALESCE(t.status,'confirmed') != 'pending'
+		 ORDER BY t.created_at DESC LIMIT ?`,
 			userID, cursor, limit+1,
 		)
 	}

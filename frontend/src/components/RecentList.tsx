@@ -37,6 +37,7 @@ export default function RecentList(props: Props) {
     queryClient.invalidateQueries({ queryKey: ["accounts"] });
     queryClient.invalidateQueries({ queryKey: ["analytics"] });
     queryClient.invalidateQueries({ queryKey: ["statistics"] });
+    queryClient.invalidateQueries({ queryKey: ["recurring-rules"] });
   };
 
   const txQuery = createInfiniteQuery(() => ({
