@@ -10,15 +10,17 @@ import (
 )
 
 type Transaction struct {
-	ID          string    `json:"id"`
-	Amount      float64   `json:"amount"`
-	Type        string    `json:"type"`
-	Category    string    `json:"category"`
-	CategoryID  string    `json:"category_id,omitempty"`
-	Description string    `json:"description"`
-	AccountID   string    `json:"account_id"`
-	ToAccountID string    `json:"to_account_id,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID              string    `json:"id"`
+	Amount          float64   `json:"amount"`
+	Type            string    `json:"type"`
+	Category        string    `json:"category"`
+	CategoryID      string    `json:"category_id,omitempty"`
+	Description     string    `json:"description"`
+	AccountID       string    `json:"account_id"`
+	ToAccountID     string    `json:"to_account_id,omitempty"`
+	Status          string    `json:"status"`
+	RecurringRuleID string    `json:"recurring_rule_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type CategoryStat struct {
@@ -62,20 +64,25 @@ func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage,
 		rows, err = db.Query(
 			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
 			        COALESCE(t.description, ''),
-			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''), t.created_at
+			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''),
+			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = ? ORDER BY t.created_at DESC LIMIT ?`,
+			 WHERE t.user_id = ?
+		 ORDER BY (CASE WHEN COALESCE(t.status,'confirmed') = 'pending' THEN 0 ELSE 1 END), t.created_at DESC
+		 LIMIT ?`,
 			userID, limit+1,
 		)
 	} else {
 		rows, err = db.Query(
 			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
 			        COALESCE(t.description, ''),
-			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''), t.created_at
+			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''),
+			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = ? AND t.created_at < ? ORDER BY t.created_at DESC LIMIT ?`,
+			 WHERE t.user_id = ? AND t.created_at < ? AND COALESCE(t.status,'confirmed') != 'pending'
+		 ORDER BY t.created_at DESC LIMIT ?`,
 			userID, cursor, limit+1,
 		)
 	}
@@ -89,7 +96,7 @@ func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage,
 		var tx Transaction
 		var createdAt string
 		if err := rows.Scan(&tx.ID, &tx.Amount, &tx.Type, &tx.Category, &tx.CategoryID, &tx.Description,
-			&tx.AccountID, &tx.ToAccountID, &createdAt); err != nil {
+			&tx.AccountID, &tx.ToAccountID, &tx.Status, &tx.RecurringRuleID, &createdAt); err != nil {
 			return TransactionPage{}, err
 		}
 		tx.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
@@ -110,6 +117,9 @@ func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage,
 func Create(db *sql.DB, tx Transaction, userID string) (Transaction, error) {
 	tx.ID = uuid.NewString()
 	tx.CreatedAt = time.Now().UTC()
+	if tx.Status == "" {
+		tx.Status = "confirmed"
+	}
 
 	if tx.Type == "transfer" {
 		tx.Category = ""
@@ -118,7 +128,7 @@ func Create(db *sql.DB, tx Transaction, userID string) (Transaction, error) {
 		tx.Category = "General"
 	}
 
-	var accountID, toAccountID, categoryID *string
+	var accountID, toAccountID, categoryID, recurringRuleID *string
 	if tx.AccountID != "" {
 		accountID = &tx.AccountID
 	}
@@ -128,12 +138,15 @@ func Create(db *sql.DB, tx Transaction, userID string) (Transaction, error) {
 	if tx.CategoryID != "" {
 		categoryID = &tx.CategoryID
 	}
+	if tx.RecurringRuleID != "" {
+		recurringRuleID = &tx.RecurringRuleID
+	}
 
 	_, err := db.Exec(
-		`INSERT INTO transactions (id, amount, type, category, category_id, description, account_id, to_account_id, user_id, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO transactions (id, amount, type, category, category_id, description, account_id, to_account_id, user_id, status, recurring_rule_id, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		tx.ID, tx.Amount, tx.Type, tx.Category, categoryID, tx.Description,
-		accountID, toAccountID, userID, tx.CreatedAt.Format(time.RFC3339),
+		accountID, toAccountID, userID, tx.Status, recurringRuleID, tx.CreatedAt.Format(time.RFC3339),
 	)
 	if err != nil {
 		return Transaction{}, err
@@ -191,12 +204,65 @@ func Delete(db *sql.DB, id, userID string) error {
 	return nil
 }
 
+func GetTransaction(db *sql.DB, id, userID string) (Transaction, error) {
+	var tx Transaction
+	var createdAt string
+	err := db.QueryRow(
+		`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
+		        COALESCE(t.description, ''), COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''),
+		        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
+		 FROM transactions t
+		 LEFT JOIN categories c ON c.id = t.category_id
+		 WHERE t.id = ? AND t.user_id = ?`,
+		id, userID,
+	).Scan(&tx.ID, &tx.Amount, &tx.Type, &tx.Category, &tx.CategoryID, &tx.Description,
+		&tx.AccountID, &tx.ToAccountID, &tx.Status, &tx.RecurringRuleID, &createdAt)
+	if err != nil {
+		return Transaction{}, err
+	}
+	tx.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+	return tx, nil
+}
+
+func ConfirmTransaction(db *sql.DB, id, userID string) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	res, err := db.Exec(
+		`UPDATE transactions SET status = 'confirmed', created_at = ? WHERE id = ? AND user_id = ? AND status = 'pending'`,
+		now, id, userID,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func DeletePendingByRule(db *sql.DB, ruleID, userID string) error {
+	_, err := db.Exec(
+		`DELETE FROM transactions WHERE recurring_rule_id = ? AND user_id = ? AND status = 'pending'`,
+		ruleID, userID,
+	)
+	return err
+}
+
+func SetRecurringRuleID(db *sql.DB, txID, userID, ruleID string) error {
+	_, err := db.Exec(
+		`UPDATE transactions SET recurring_rule_id = ? WHERE id = ? AND user_id = ?`,
+		ruleID, txID, userID,
+	)
+	return err
+}
+
 func Statistics(db *sql.DB, userID string, month string) ([]CategoryStat, error) {
 	rows, err := db.Query(
 		`SELECT COALESCE(c.name, t.category), COALESCE(c.icon, ''), SUM(t.amount)
 		 FROM transactions t
 		 LEFT JOIN categories c ON c.id = t.category_id
 		 WHERE t.type='expense' AND t.user_id = ? AND strftime('%Y-%m', t.created_at) = ?
+		   AND COALESCE(t.status, 'confirmed') = 'confirmed'
 		 GROUP BY COALESCE(c.name, t.category) ORDER BY SUM(t.amount) DESC`,
 		userID, month,
 	)
@@ -270,6 +336,7 @@ func Analytics(db *sql.DB, userID string, period string) (AnalyticsResult, error
 		 FROM transactions t
 		 LEFT JOIN categories c ON c.id = t.category_id
 		 WHERE t.type='expense' AND t.user_id = ? AND t.created_at >= ? AND t.created_at < ?
+		   AND COALESCE(t.status, 'confirmed') = 'confirmed'
 		 GROUP BY COALESCE(c.name, t.category) ORDER BY SUM(t.amount) DESC`,
 		userID, from, to,
 	)
@@ -303,6 +370,7 @@ func Analytics(db *sql.DB, userID string, period string) (AnalyticsResult, error
 		 FROM transactions t
 		 JOIN accounts a ON a.id = t.account_id
 		 WHERE t.type='expense' AND t.user_id = ? AND t.created_at >= ? AND t.created_at < ?
+		   AND COALESCE(t.status, 'confirmed') = 'confirmed'
 		 GROUP BY a.id, a.name, a.type ORDER BY SUM(t.amount) DESC`,
 		userID, from, to,
 	)

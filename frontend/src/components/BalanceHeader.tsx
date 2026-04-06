@@ -28,11 +28,11 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
   const balance = () => accounts().reduce((sum, a) => sum + a.balance, 0);
   const income = () =>
     transactions()
-      .filter((t) => t.type === "income")
+      .filter((t) => t.type === "income" && t.status !== "pending")
       .reduce((sum, t) => sum + t.amount, 0);
   const expenses = () =>
     transactions()
-      .filter((t) => t.type === "expense")
+      .filter((t) => t.type === "expense" && t.status !== "pending")
       .reduce((sum, t) => sum + t.amount, 0);
 
   return (

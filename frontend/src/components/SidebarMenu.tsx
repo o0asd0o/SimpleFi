@@ -1,9 +1,11 @@
 import { onCleanup, onMount } from "solid-js";
 import { cn } from "../lib/cn";
 
+type ViewType = "home" | "analytics" | "recurring";
+
 type Props = {
-  activeView: "home" | "analytics";
-  onNavigate: (view: "home" | "analytics") => void;
+  activeView: ViewType;
+  onNavigate: (view: ViewType) => void;
   onLogout: () => void;
   onClose: () => void;
 };
@@ -22,7 +24,7 @@ export default function SidebarMenu(props: Props) {
     document.body.style.overflow = "";
   });
 
-  const handleNav = (view: "home" | "analytics") => {
+  const handleNav = (view: ViewType) => {
     props.onNavigate(view);
     props.onClose();
   };
@@ -99,6 +101,31 @@ export default function SidebarMenu(props: Props) {
               />
             </svg>
             Analytics
+          </button>
+          <button
+            type="button"
+            onClick={() => handleNav("recurring")}
+            class={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
+              props.activeView === "recurring"
+                ? "bg-purple-600/20 text-purple-400"
+                : "text-gray-400 hover:bg-white/5 hover:text-white",
+            )}
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Recurring
           </button>
         </div>
 

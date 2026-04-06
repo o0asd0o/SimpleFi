@@ -1,6 +1,6 @@
 import { createEffect, createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/solid-query";
-import { createTransaction, updateTransaction, fetchAccounts, fetchCategories, type Transaction } from "../lib/api";
+import { createTransaction, updateTransaction, fetchAccounts, fetchCategories, fetchRecurringRules, updateRecurringRule, deleteRecurringRule, type Transaction, type Frequency, type RecurringRule } from "../lib/api";
 import { cn } from "../lib/cn";
 import ManageCategoriesModal from "./ManageCategoriesModal";
 
@@ -18,6 +18,11 @@ export default function TransactionSheet(props: Props) {
   const [toAccountId, setToAccountId] = createSignal(editing()?.to_account_id ?? "");
   const [mode, setMode] = createSignal<"expense" | "income" | "transfer">(editing()?.type ?? "expense");
   const [showManageCategories, setShowManageCategories] = createSignal(false);
+  const [showRecurringModal, setShowRecurringModal] = createSignal(false);
+  const [isRecurring, setIsRecurring] = createSignal(!!editing()?.recurring_rule_id);
+  const [frequency, setFrequency] = createSignal<Frequency>("monthly");
+  const [startDate, setStartDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [endDate, setEndDate] = createSignal("");
   let inputRef: HTMLInputElement | undefined;
 
   const queryClient = useQueryClient();
@@ -48,6 +53,45 @@ export default function TransactionSheet(props: Props) {
     queryKey: ["categories"],
     queryFn: fetchCategories,
   }));
+
+  // Fetch recurring rules when editing a recurring transaction
+  const recurringRulesQuery = createQuery(() => ({
+    queryKey: ["recurring-rules"],
+    queryFn: fetchRecurringRules,
+    enabled: !!editing(),
+  }));
+
+  // Pre-populate recurring state from existing rule when editing
+  const [recurringInitialized, setRecurringInitialized] = createSignal(false);
+  const [matchedRuleId, setMatchedRuleId] = createSignal<string | undefined>();
+  createEffect(() => {
+    const tx = editing();
+    const rules = recurringRulesQuery.data;
+    if (!tx || !rules || recurringInitialized()) return;
+
+    let rule: RecurringRule | undefined;
+    if (tx.recurring_rule_id) {
+      // Direct match by rule ID
+      rule = rules.find((r) => r.id === tx.recurring_rule_id);
+    }
+    // Fallback: match by properties for old transactions without recurring_rule_id
+    if (!rule) {
+      rule = rules.find(
+        (r) =>
+          r.amount === tx.amount &&
+          r.type === tx.type &&
+          r.account_id === tx.account_id,
+      );
+    }
+    if (rule) {
+      setIsRecurring(true);
+      setFrequency(rule.frequency);
+      setStartDate(rule.next_due);
+      setEndDate(rule.end_date ?? "");
+      setMatchedRuleId(rule.id);
+    }
+    setRecurringInitialized(true);
+  });
 
   const categories = () => categoriesQuery.data ?? [];
   const filteredCategories = () => categories().filter((c) => c.type === mode());
@@ -90,16 +134,42 @@ export default function TransactionSheet(props: Props) {
   });
 
   const mutation = createMutation(() => ({
-    mutationFn: (data: Parameters<typeof createTransaction>[0]) =>
-      editing()
-        ? updateTransaction(editing()!.id, data)
-        : createTransaction(data),
+    mutationFn: async (data: Parameters<typeof createTransaction>[0]) => {
+      const tx = editing();
+      const result = tx
+        ? await updateTransaction(tx.id, data)
+        : await createTransaction(data);
+
+      // Handle recurring rule changes on edit
+      if (tx) {
+        const ruleId = tx.recurring_rule_id || matchedRuleId();
+        const hadRule = !!ruleId;
+        const wantsRecurring = isRecurring();
+
+        if (hadRule && !wantsRecurring) {
+          // Turned off recurring — delete the rule
+          await deleteRecurringRule(ruleId!);
+        } else if (hadRule && wantsRecurring) {
+          // Update existing rule
+          await updateRecurringRule(ruleId!, {
+            frequency: frequency(),
+            next_due: startDate(),
+            end_date: endDate() || undefined,
+          });
+        }
+        // Note: creating a new rule on an existing non-recurring transaction
+        // is not supported — use the "new transaction" flow for that
+      }
+
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transactions-summary"] });
       queryClient.invalidateQueries({ queryKey: ["statistics"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["recurring-rules"] });
       props.onClose();
     },
   }));
@@ -120,6 +190,10 @@ export default function TransactionSheet(props: Props) {
       description: description() || undefined,
       account_id: accountId(),
       to_account_id: mode() === "transfer" ? toAccountId() : undefined,
+      recurring: isRecurring() ? true : undefined,
+      frequency: isRecurring() ? frequency() : undefined,
+      start_date: isRecurring() ? startDate() : undefined,
+      end_date: isRecurring() && endDate() ? endDate() : undefined,
     });
   };
 
@@ -325,14 +399,126 @@ export default function TransactionSheet(props: Props) {
           />
         </Show>
 
-        {/* Description */}
-        <input
-          type="text"
-          placeholder="Description (optional)"
-          value={description()}
-          onInput={(e) => setDescription(e.currentTarget.value)}
-          class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500 mb-6"
-        />
+        {/* Description + Repeat */}
+        <div class="relative flex items-center gap-2 mb-6">
+          <input
+            type="text"
+            placeholder="Description (optional)"
+            value={description()}
+            onInput={(e) => setDescription(e.currentTarget.value)}
+            class="flex-1 min-w-0 bg-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500"
+          />
+          <button
+              type="button"
+              onClick={() => setShowRecurringModal(true)}
+              class={cn(
+                "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
+                isRecurring() ? "bg-purple-600/30 ring-1 ring-purple-500" : "bg-white/5",
+              )}
+              aria-label="Set recurring"
+            >
+              <svg
+                class={cn("w-5 h-5", isRecurring() ? "text-purple-400" : "text-gray-500")}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+        </div>
+
+        {/* Recurring modal */}
+        <Show when={showRecurringModal()}>
+          <div
+            class="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
+            onClick={() => setShowRecurringModal(false)}
+          />
+          <div class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter">
+            <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            <h3 class="text-white font-semibold text-lg mb-6">Repeat</h3>
+
+            {/* Frequency pills */}
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Occurrence</p>
+            <div class="flex gap-2 flex-wrap mb-6">
+              <For each={[
+                { value: "daily", label: "Daily" },
+                { value: "weekly", label: "Weekly" },
+                { value: "biweekly", label: "Every 2 Weeks" },
+                { value: "monthly", label: "Monthly" },
+                { value: "yearly", label: "Yearly" },
+              ] as { value: Frequency; label: string }[]}>
+                {(opt) => (
+                  <button
+                    type="button"
+                    onClick={() => { setIsRecurring(true); setFrequency(opt.value); }}
+                    class={cn(
+                      "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                      isRecurring() && frequency() === opt.value
+                        ? "bg-purple-600 text-white"
+                        : "bg-white/5 text-gray-400 hover:bg-white/10",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                )}
+              </For>
+            </div>
+
+            {/* Start date */}
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">{editing() ? "Next due" : "Start date"}</p>
+            <input
+              type="date"
+              value={startDate()}
+              onInput={(e) => setStartDate(e.currentTarget.value)}
+              class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-4 [color-scheme:dark]"
+            />
+
+            {/* End date (optional) */}
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs text-gray-500 uppercase tracking-wider">End date</p>
+              <Show when={endDate()}>
+                <button
+                  type="button"
+                  onClick={() => setEndDate("")}
+                  class="text-xs text-purple-400"
+                >
+                  Clear
+                </button>
+              </Show>
+            </div>
+            <input
+              type="date"
+              value={endDate()}
+              onInput={(e) => setEndDate(e.currentTarget.value)}
+              min={startDate()}
+              placeholder="Indefinite"
+              class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-2 [color-scheme:dark]"
+            />
+            <p class="text-xs text-gray-500 mb-6">{endDate() ? "" : "No end date — repeats indefinitely"}</p>
+
+            {/* Actions */}
+            <div class="flex gap-3">
+              <Show when={isRecurring()}>
+                <button
+                  type="button"
+                  onClick={() => { setIsRecurring(false); setShowRecurringModal(false); }}
+                  class="flex-1 py-3 rounded-2xl bg-white/5 text-gray-400 font-medium text-sm"
+                >
+                  Turn Off
+                </button>
+              </Show>
+              <button
+                type="button"
+                onClick={() => setShowRecurringModal(false)}
+                class="flex-1 py-3 rounded-2xl bg-purple-600 text-white font-semibold text-sm"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </Show>
 
         {/* Submit button */}
         <button

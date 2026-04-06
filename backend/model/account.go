@@ -28,6 +28,7 @@ func ListAccounts(db *sql.DB, userID string) ([]Account, error) {
 		  AS balance
 		FROM accounts a
 		LEFT JOIN transactions t ON (t.account_id = a.id OR t.to_account_id = a.id) AND t.user_id = ?
+		  AND COALESCE(t.status, 'confirmed') = 'confirmed'
 		WHERE a.user_id = ?
 		GROUP BY a.id
 		ORDER BY a.created_at ASC
