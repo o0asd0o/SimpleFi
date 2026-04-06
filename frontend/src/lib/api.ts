@@ -11,6 +11,8 @@ export type Transaction = {
   to_account_id?: string;
   status: "confirmed" | "pending";
   recurring_rule_id?: string;
+  user_id?: string;
+  user_name?: string;
   created_at: string;
 };
 
@@ -61,24 +63,23 @@ export type CreateTransactionInput = {
   end_date?: string;
 };
 
-export type Frequency =
-  | "daily"
-  | "weekly"
-  | "biweekly"
-  | "monthly"
-  | "yearly";
+export type Frequency = "daily" | "weekly" | "biweekly" | "monthly" | "yearly";
 
 export type Account = {
   id: string;
   name: string;
   type: "cash" | "credit" | "debit" | "savings";
   balance: number;
+  is_private: boolean;
+  owner_user_id?: string;
+  owner_name?: string;
   created_at: string;
 };
 
 export type CreateAccountInput = {
   name: string;
   type: "cash" | "credit" | "debit" | "savings";
+  is_private?: boolean;
 };
 
 export type User = {
@@ -94,7 +95,42 @@ export type AuthResponse = {
   passphrase?: string;
 };
 
-async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
+export type PartnershipMember = {
+  user_id: string;
+  username: string;
+  name: string;
+  status: "active" | "left";
+  joined_at: string;
+};
+
+export type Partnership = {
+  id: string;
+  name: string;
+  type: "couple" | "group";
+  created_by: string;
+  members: PartnershipMember[];
+  created_at: string;
+};
+
+export type Invitation = {
+  id: string;
+  partnership_id: string;
+  from_user_id: string;
+  from_username: string;
+  from_name: string;
+  to_user_id: string;
+  to_username: string;
+  to_name: string;
+  partnership_name: string;
+  partnership_type: "couple" | "group";
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+};
+
+async function apiFetch(
+  path: string,
+  options?: RequestInit,
+): Promise<Response> {
   const token = localStorage.getItem("token");
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -119,16 +155,22 @@ export type TransactionPage = {
 export async function fetchTransactions(
   limit = 15,
   cursor?: string,
+  partnershipId?: string | null,
 ): Promise<TransactionPage> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (cursor) params.set("cursor", cursor);
+  if (partnershipId) params.set("partnership_id", partnershipId);
   const res = await apiFetch(`/api/transactions?${params}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");
   return res.json();
 }
 
-export async function fetchAllTransactions(): Promise<Transaction[]> {
-  const res = await apiFetch("/api/transactions?limit=100");
+export async function fetchAllTransactions(
+  partnershipId?: string | null,
+): Promise<Transaction[]> {
+  const params = new URLSearchParams({ limit: "100" });
+  if (partnershipId) params.set("partnership_id", partnershipId);
+  const res = await apiFetch(`/api/transactions?${params}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");
   const page: TransactionPage = await res.json();
   return page.items;
@@ -219,22 +261,41 @@ export async function createTransaction(
   return res.json();
 }
 
-export async function fetchStatistics(month: string): Promise<CategoryStat[]> {
-  const res = await apiFetch(`/api/statistics?month=${month}`);
+export async function fetchStatistics(
+  month: string,
+  partnershipId?: string | null,
+  filterUserId?: string | null,
+): Promise<CategoryStat[]> {
+  const params = new URLSearchParams({ month });
+  if (partnershipId) params.set("partnership_id", partnershipId);
+  if (filterUserId) params.set("user_id", filterUserId);
+  const res = await apiFetch(`/api/statistics?${params}`);
   if (!res.ok) throw new Error("Failed to fetch statistics");
   return res.json();
 }
 
 export async function fetchAnalytics(
   period: AnalyticsPeriod,
+  partnershipId?: string | null,
+  filterUserId?: string | null,
 ): Promise<AnalyticsResult> {
-  const res = await apiFetch(`/api/analytics?period=${period}`);
+  const params = new URLSearchParams({ period });
+  if (partnershipId) params.set("partnership_id", partnershipId);
+  if (filterUserId) params.set("user_id", filterUserId);
+  const res = await apiFetch(`/api/analytics?${params}`);
   if (!res.ok) throw new Error("Failed to fetch analytics");
   return res.json();
 }
 
-export async function fetchAccounts(): Promise<Account[]> {
-  const res = await apiFetch("/api/accounts");
+export async function fetchAccounts(
+  partnershipId?: string | null,
+): Promise<Account[]> {
+  const params = partnershipId
+    ? new URLSearchParams({ partnership_id: partnershipId })
+    : new URLSearchParams();
+  const res = await apiFetch(
+    `/api/accounts${params.toString() ? `?${params}` : ""}`,
+  );
   if (!res.ok) throw new Error("Failed to fetch accounts");
   return res.json();
 }
@@ -371,4 +432,88 @@ export async function fetchMe(): Promise<User> {
   if (!res.ok) throw new Error("Failed to fetch user");
   const data = await res.json();
   return data.user;
+}
+
+export async function fetchPartnerships(): Promise<Partnership[]> {
+  const res = await apiFetch("/api/partnerships");
+  if (!res.ok) throw new Error("Failed to fetch partnerships");
+  return res.json();
+}
+
+export async function createPartnership(
+  name: string,
+  type: "couple" | "group",
+): Promise<Partnership> {
+  const res = await apiFetch("/api/partnerships", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, type }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Failed to create partnership");
+  }
+  return res.json();
+}
+
+export async function leavePartnership(id: string): Promise<void> {
+  const res = await apiFetch(`/api/partnerships/${id}/leave`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to leave partnership");
+}
+
+export async function inviteToPartnership(
+  partnershipId: string,
+  username: string,
+): Promise<Invitation> {
+  const res = await apiFetch(`/api/partnerships/${partnershipId}/invite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Failed to send invitation");
+  }
+  return res.json();
+}
+
+export async function fetchInvitations(): Promise<Invitation[]> {
+  const res = await apiFetch("/api/invitations");
+  if (!res.ok) throw new Error("Failed to fetch invitations");
+  return res.json();
+}
+
+export async function fetchSentInvitations(): Promise<Invitation[]> {
+  const res = await apiFetch("/api/invitations/sent");
+  if (!res.ok) throw new Error("Failed to fetch sent invitations");
+  return res.json();
+}
+
+export async function respondToInvitation(
+  id: string,
+  accept: boolean,
+): Promise<void> {
+  const res = await apiFetch(`/api/invitations/${id}/respond`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accept }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Failed to respond to invitation");
+  }
+}
+
+export async function setAccountPrivacy(
+  id: string,
+  isPrivate: boolean,
+): Promise<void> {
+  const res = await apiFetch(`/api/accounts/${id}/privacy`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ is_private: isPrivate }),
+  });
+  if (!res.ok) throw new Error("Failed to update account privacy");
 }

@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -134,6 +135,47 @@ func migrate(db *sql.DB) error {
 	}
 	for _, idx := range indexes {
 		if _, err := db.Exec(idx); err != nil {
+			return err
+		}
+	}
+
+	// Add is_private to accounts
+	if err := addColumnIfNotExists(db, "accounts", "is_private", "INTEGER NOT NULL DEFAULT 0"); err != nil {
+		return err
+	}
+
+	// Partnership tables
+	partnershipStmts := []string{
+		`CREATE TABLE IF NOT EXISTS partnerships (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL DEFAULT '',
+			type TEXT NOT NULL DEFAULT 'group',
+			created_by TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS partnership_members (
+			partnership_id TEXT NOT NULL,
+			user_id TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'active',
+			joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (partnership_id, user_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_pm_user ON partnership_members(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_pm_partnership ON partnership_members(partnership_id)`,
+		`CREATE TABLE IF NOT EXISTS partnership_invitations (
+			id TEXT PRIMARY KEY,
+			partnership_id TEXT NOT NULL,
+			from_user_id TEXT NOT NULL,
+			to_user_id TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			responded_at DATETIME
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_pi_to_user ON partnership_invitations(to_user_id, status)`,
+		`CREATE INDEX IF NOT EXISTS idx_pi_partnership ON partnership_invitations(partnership_id)`,
+	}
+	for _, stmt := range partnershipStmts {
+		if _, err := db.Exec(stmt); err != nil {
 			return err
 		}
 	}

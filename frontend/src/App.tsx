@@ -2,18 +2,20 @@ import { createSignal, lazy, Show, Suspense } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
 import { type AuthResponse, type Transaction } from "./lib/api";
 
-// Eager — always visible on home
+// Eager — always visible or always-present UI
 import BalanceHeader from "./components/BalanceHeader";
 import AccountStrip from "./components/AccountStrip";
 import RecentList from "./components/RecentList";
+import TransactionSheet from "./components/TransactionSheet";
+import SidebarMenu from "./components/SidebarMenu";
+import PassphraseModal from "./components/PassphraseModal";
+import ContextSwitcher from "./components/ContextSwitcher";
 
-// Lazy — loaded on demand
+// Lazy — page-level views only
 const StatBars = lazy(() => import("./components/StatBars"));
 const RecurringList = lazy(() => import("./components/RecurringList"));
-const TransactionSheet = lazy(() => import("./components/TransactionSheet"));
-const SidebarMenu = lazy(() => import("./components/SidebarMenu"));
 const LoginScreen = lazy(() => import("./components/LoginScreen"));
-const PassphraseModal = lazy(() => import("./components/PassphraseModal"));
+const PartnershipView = lazy(() => import("./components/PartnershipView"));
 
 export default function App() {
   const [token, setToken] = createSignal(localStorage.getItem("token"));
@@ -22,8 +24,11 @@ export default function App() {
   const [editingTx, setEditingTx] = createSignal<Transaction | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
   const [activeView, setActiveView] = createSignal<
-    "home" | "analytics" | "recurring"
+    "home" | "analytics" | "recurring" | "partnerships"
   >("home");
+  const [activePartnershipId, setActivePartnershipId] = createSignal<
+    string | null
+  >(null);
   const queryClient = useQueryClient();
 
   const handleAuthSuccess = (response: AuthResponse) => {
@@ -39,6 +44,7 @@ export default function App() {
     setToken(null);
     queryClient.clear();
     setIsSidebarOpen(false);
+    setActivePartnershipId(null);
   };
 
   return (
@@ -54,11 +60,21 @@ export default function App() {
         fallback={<LoginScreen onAuthSuccess={handleAuthSuccess} />}
       >
         <div class="min-h-screen bg-app-bg text-white max-w-md mx-auto relative pb-28">
-          <BalanceHeader onMenuOpen={() => setIsSidebarOpen(true)} />
+          <BalanceHeader
+            onMenuOpen={() => setIsSidebarOpen(true)}
+            activePartnershipId={activePartnershipId()}
+          />
+
+          {/* Context switcher — shown for all views when in a partnership */}
+          <ContextSwitcher
+            activePartnershipId={activePartnershipId()}
+            onChange={setActivePartnershipId}
+          />
 
           <Show when={activeView() === "home"}>
-            <AccountStrip />
+            <AccountStrip activePartnershipId={activePartnershipId()} />
             <RecentList
+              activePartnershipId={activePartnershipId()}
               onEdit={(tx) => {
                 setEditingTx(tx);
                 setIsSheetOpen(true);
@@ -67,30 +83,37 @@ export default function App() {
           </Show>
 
           <Show when={activeView() === "analytics"}>
-            <StatBars />
+            <StatBars activePartnershipId={activePartnershipId()} />
           </Show>
 
           <Show when={activeView() === "recurring"}>
             <RecurringList />
           </Show>
 
-          {/* FAB */}
-          <button
-            type="button"
-            aria-label="Add transaction"
-            onClick={() => {
-              setEditingTx(null);
-              setIsSheetOpen(true);
-            }}
-            class="fixed bottom-8 right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
-          >
-            +
-          </button>
+          <Show when={activeView() === "partnerships"}>
+            <PartnershipView />
+          </Show>
+
+          {/* FAB — hidden on partnerships view */}
+          <Show when={activeView() !== "partnerships"}>
+            <button
+              type="button"
+              aria-label="Add transaction"
+              onClick={() => {
+                setEditingTx(null);
+                setIsSheetOpen(true);
+              }}
+              class="fixed bottom-8 right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
+            >
+              +
+            </button>
+          </Show>
 
           {/* Transaction sheet */}
           <Show when={isSheetOpen()}>
             <TransactionSheet
               editTransaction={editingTx() ?? undefined}
+              activePartnershipId={activePartnershipId()}
               onClose={() => {
                 setIsSheetOpen(false);
                 setEditingTx(null);

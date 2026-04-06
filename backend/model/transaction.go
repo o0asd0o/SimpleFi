@@ -20,6 +20,8 @@ type Transaction struct {
 	ToAccountID     string    `json:"to_account_id,omitempty"`
 	Status          string    `json:"status"`
 	RecurringRuleID string    `json:"recurring_rule_id,omitempty"`
+	UserID          string    `json:"user_id,omitempty"`
+	UserName        string    `json:"user_name,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 
@@ -52,38 +54,46 @@ type TransactionPage struct {
 	NextCursor string        `json:"next_cursor,omitempty"`
 }
 
-func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage, error) {
+func List(db *sql.DB, accountIDs []string, callerUserID string, limit int, cursor string) (TransactionPage, error) {
 	if limit <= 0 {
 		limit = 15
 	}
+
+	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
 
 	var rows *sql.Rows
 	var err error
 
 	if cursor == "" {
+		args := append(whereArgs, limit+1)
 		rows, err = db.Query(
 			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
 			        COALESCE(t.description, ''),
 			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''),
-			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
+			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at,
+			        COALESCE(t.user_id, ''), COALESCE(u.name, '')
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = ?
+			 LEFT JOIN users u ON u.id = t.user_id
+			 WHERE `+whereClause+`
 		 ORDER BY (CASE WHEN COALESCE(t.status,'confirmed') = 'pending' THEN 0 ELSE 1 END), t.created_at DESC
 		 LIMIT ?`,
-			userID, limit+1,
+			args...,
 		)
 	} else {
+		args := append(whereArgs, cursor, limit+1)
 		rows, err = db.Query(
 			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
 			        COALESCE(t.description, ''),
 			        COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''),
-			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
+			        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at,
+			        COALESCE(t.user_id, ''), COALESCE(u.name, '')
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = ? AND t.created_at < ? AND COALESCE(t.status,'confirmed') != 'pending'
+			 LEFT JOIN users u ON u.id = t.user_id
+			 WHERE `+whereClause+` AND t.created_at < ? AND COALESCE(t.status,'confirmed') != 'pending'
 		 ORDER BY t.created_at DESC LIMIT ?`,
-			userID, cursor, limit+1,
+			args...,
 		)
 	}
 	if err != nil {
@@ -96,7 +106,8 @@ func List(db *sql.DB, userID string, limit int, cursor string) (TransactionPage,
 		var tx Transaction
 		var createdAt string
 		if err := rows.Scan(&tx.ID, &tx.Amount, &tx.Type, &tx.Category, &tx.CategoryID, &tx.Description,
-			&tx.AccountID, &tx.ToAccountID, &tx.Status, &tx.RecurringRuleID, &createdAt); err != nil {
+			&tx.AccountID, &tx.ToAccountID, &tx.Status, &tx.RecurringRuleID, &createdAt,
+			&tx.UserID, &tx.UserName); err != nil {
 			return TransactionPage{}, err
 		}
 		tx.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
@@ -151,6 +162,7 @@ func Create(db *sql.DB, tx Transaction, userID string) (Transaction, error) {
 	if err != nil {
 		return Transaction{}, err
 	}
+	tx.UserID = userID
 	return tx, nil
 }
 
@@ -189,11 +201,18 @@ func Update(db *sql.DB, id string, tx Transaction, userID string) (Transaction, 
 	}
 
 	tx.ID = id
+	tx.UserID = userID
 	return tx, nil
 }
 
-func Delete(db *sql.DB, id, userID string) error {
-	res, err := db.Exec(`DELETE FROM transactions WHERE id = ? AND user_id = ?`, id, userID)
+// Delete removes a transaction if the caller has permission (owns an account involved).
+func Delete(db *sql.DB, id string, accountIDs []string, callerUserID string) error {
+	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
+	args := append([]any{id}, whereArgs...)
+	res, err := db.Exec(
+		`DELETE FROM transactions WHERE id = ? AND `+whereClause,
+		args...,
+	)
 	if err != nil {
 		return err
 	}
@@ -204,19 +223,26 @@ func Delete(db *sql.DB, id, userID string) error {
 	return nil
 }
 
-func GetTransaction(db *sql.DB, id, userID string) (Transaction, error) {
+// GetTransaction fetches a transaction if the caller has permission.
+func GetTransaction(db *sql.DB, id string, accountIDs []string, callerUserID string) (Transaction, error) {
+	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
+	args := append([]any{id}, whereArgs...)
+
 	var tx Transaction
 	var createdAt string
 	err := db.QueryRow(
 		`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
 		        COALESCE(t.description, ''), COALESCE(t.account_id, ''), COALESCE(t.to_account_id, ''),
-		        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at
+		        COALESCE(t.status, 'confirmed'), COALESCE(t.recurring_rule_id, ''), t.created_at,
+		        COALESCE(t.user_id, ''), COALESCE(u.name, '')
 		 FROM transactions t
 		 LEFT JOIN categories c ON c.id = t.category_id
-		 WHERE t.id = ? AND t.user_id = ?`,
-		id, userID,
+		 LEFT JOIN users u ON u.id = t.user_id
+		 WHERE t.id = ? AND `+whereClause,
+		args...,
 	).Scan(&tx.ID, &tx.Amount, &tx.Type, &tx.Category, &tx.CategoryID, &tx.Description,
-		&tx.AccountID, &tx.ToAccountID, &tx.Status, &tx.RecurringRuleID, &createdAt)
+		&tx.AccountID, &tx.ToAccountID, &tx.Status, &tx.RecurringRuleID, &createdAt,
+		&tx.UserID, &tx.UserName)
 	if err != nil {
 		return Transaction{}, err
 	}
@@ -224,11 +250,12 @@ func GetTransaction(db *sql.DB, id, userID string) (Transaction, error) {
 	return tx, nil
 }
 
-func ConfirmTransaction(db *sql.DB, id, userID string) error {
+// ConfirmTransaction confirms a pending transaction by ID only (access already validated by caller).
+func ConfirmTransaction(db *sql.DB, id string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	res, err := db.Exec(
-		`UPDATE transactions SET status = 'confirmed', created_at = ? WHERE id = ? AND user_id = ? AND status = 'pending'`,
-		now, id, userID,
+		`UPDATE transactions SET status = 'confirmed', created_at = ? WHERE id = ? AND status = 'pending'`,
+		now, id,
 	)
 	if err != nil {
 		return err
@@ -256,15 +283,26 @@ func SetRecurringRuleID(db *sql.DB, txID, userID, ruleID string) error {
 	return err
 }
 
-func Statistics(db *sql.DB, userID string, month string) ([]CategoryStat, error) {
+// Statistics returns expense breakdown by category for a month.
+// accountIDs scopes which accounts to aggregate. filterUserID (optional) narrows to one person's transactions.
+func Statistics(db *sql.DB, accountIDs []string, callerUserID string, month string, filterUserID string) ([]CategoryStat, error) {
+	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
+	args := append(whereArgs, month)
+
+	extraFilter := ""
+	if filterUserID != "" {
+		extraFilter = " AND t.user_id = ?"
+		args = append(args, filterUserID)
+	}
+
 	rows, err := db.Query(
 		`SELECT COALESCE(c.name, t.category), COALESCE(c.icon, ''), SUM(t.amount)
 		 FROM transactions t
 		 LEFT JOIN categories c ON c.id = t.category_id
-		 WHERE t.type='expense' AND t.user_id = ? AND strftime('%Y-%m', t.created_at) = ?
-		   AND COALESCE(t.status, 'confirmed') = 'confirmed'
+		 WHERE `+whereClause+` AND t.type='expense' AND strftime('%Y-%m', t.created_at) = ?
+		   AND COALESCE(t.status, 'confirmed') = 'confirmed'`+extraFilter+`
 		 GROUP BY COALESCE(c.name, t.category) ORDER BY SUM(t.amount) DESC`,
-		userID, month,
+		args...,
 	)
 	if err != nil {
 		return nil, err
@@ -318,10 +356,21 @@ func analyticsDateRange(period string) (string, string, error) {
 	return start.Format(time.RFC3339), end.Format(time.RFC3339), nil
 }
 
-func Analytics(db *sql.DB, userID string, period string) (AnalyticsResult, error) {
+// Analytics returns expense analytics for a period.
+// accountIDs scopes which accounts to aggregate. filterUserID (optional) narrows to one person.
+func Analytics(db *sql.DB, accountIDs []string, callerUserID string, period string, filterUserID string) (AnalyticsResult, error) {
 	from, to, err := analyticsDateRange(period)
 	if err != nil {
 		return AnalyticsResult{}, err
+	}
+
+	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
+
+	extraFilter := ""
+	filterArgs := []any{}
+	if filterUserID != "" {
+		extraFilter = " AND t.user_id = ?"
+		filterArgs = append(filterArgs, filterUserID)
 	}
 
 	result := AnalyticsResult{
@@ -331,14 +380,16 @@ func Analytics(db *sql.DB, userID string, period string) (AnalyticsResult, error
 	}
 
 	// Query A: by category
+	catArgs := append(whereArgs, from, to)
+	catArgs = append(catArgs, filterArgs...)
 	catRows, err := db.Query(
 		`SELECT COALESCE(c.name, t.category), COALESCE(c.icon, ''), SUM(t.amount)
 		 FROM transactions t
 		 LEFT JOIN categories c ON c.id = t.category_id
-		 WHERE t.type='expense' AND t.user_id = ? AND t.created_at >= ? AND t.created_at < ?
-		   AND COALESCE(t.status, 'confirmed') = 'confirmed'
+		 WHERE `+whereClause+` AND t.type='expense' AND t.created_at >= ? AND t.created_at < ?
+		   AND COALESCE(t.status, 'confirmed') = 'confirmed'`+extraFilter+`
 		 GROUP BY COALESCE(c.name, t.category) ORDER BY SUM(t.amount) DESC`,
-		userID, from, to,
+		catArgs...,
 	)
 	if err != nil {
 		return AnalyticsResult{}, err
@@ -365,14 +416,16 @@ func Analytics(db *sql.DB, userID string, period string) (AnalyticsResult, error
 	result.Total = catTotal
 
 	// Query B: by account
+	accArgs := append(whereArgs, from, to)
+	accArgs = append(accArgs, filterArgs...)
 	accRows, err := db.Query(
 		`SELECT a.id, a.name, a.type, SUM(t.amount)
 		 FROM transactions t
 		 JOIN accounts a ON a.id = t.account_id
-		 WHERE t.type='expense' AND t.user_id = ? AND t.created_at >= ? AND t.created_at < ?
-		   AND COALESCE(t.status, 'confirmed') = 'confirmed'
+		 WHERE `+whereClause+` AND t.type='expense' AND t.created_at >= ? AND t.created_at < ?
+		   AND COALESCE(t.status, 'confirmed') = 'confirmed'`+extraFilter+`
 		 GROUP BY a.id, a.name, a.type ORDER BY SUM(t.amount) DESC`,
-		userID, from, to,
+		accArgs...,
 	)
 	if err != nil {
 		return AnalyticsResult{}, err

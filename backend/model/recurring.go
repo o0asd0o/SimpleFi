@@ -116,13 +116,13 @@ func UpdateRecurringRule(db *sql.DB, id, userID string, frequency, nextDue, endD
 	return nil
 }
 
-func AdvanceNextDue(db *sql.DB, ruleID, userID string) error {
+func AdvanceNextDue(db *sql.DB, ruleID string) error {
 	var nextDue string
 	var frequency string
 	var endDate sql.NullString
 	err := db.QueryRow(
-		`SELECT next_due, frequency, end_date FROM recurring_rules WHERE id = ? AND user_id = ?`,
-		ruleID, userID,
+		`SELECT next_due, frequency, end_date FROM recurring_rules WHERE id = ?`,
+		ruleID,
 	).Scan(&nextDue, &frequency, &endDate)
 	if err != nil {
 		return err
@@ -138,17 +138,11 @@ func AdvanceNextDue(db *sql.DB, ruleID, userID string) error {
 
 	// If end_date is set and the new next_due is past it, deactivate the rule
 	if endDate.Valid && endDate.String != "" && nextStr > endDate.String {
-		_, err = db.Exec(
-			`UPDATE recurring_rules SET active = 0 WHERE id = ? AND user_id = ?`,
-			ruleID, userID,
-		)
+		_, err = db.Exec(`UPDATE recurring_rules SET active = 0 WHERE id = ?`, ruleID)
 		return err
 	}
 
-	_, err = db.Exec(
-		`UPDATE recurring_rules SET next_due = ? WHERE id = ? AND user_id = ?`,
-		nextStr, ruleID, userID,
-	)
+	_, err = db.Exec(`UPDATE recurring_rules SET next_due = ? WHERE id = ?`, nextStr, ruleID)
 	return err
 }
 

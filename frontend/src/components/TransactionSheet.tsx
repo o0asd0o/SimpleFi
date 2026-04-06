@@ -1,27 +1,66 @@
-import { createEffect, createSignal, onCleanup, onMount, For, Show } from "solid-js";
-import { createMutation, createQuery, useQueryClient } from "@tanstack/solid-query";
-import { createTransaction, updateTransaction, fetchAccounts, fetchCategories, fetchRecurringRules, updateRecurringRule, deleteRecurringRule, type Transaction, type Frequency, type RecurringRule } from "../lib/api";
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+  For,
+  Show,
+} from "solid-js";
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from "@tanstack/solid-query";
+import {
+  createTransaction,
+  updateTransaction,
+  fetchAccounts,
+  fetchCategories,
+  fetchRecurringRules,
+  fetchMe,
+  fetchPartnerships,
+  updateRecurringRule,
+  deleteRecurringRule,
+  type Transaction,
+  type Frequency,
+  type RecurringRule,
+  type Account,
+} from "../lib/api";
 import { cn } from "../lib/cn";
 import ManageCategoriesModal from "./ManageCategoriesModal";
 
 type Props = {
   onClose: () => void;
   editTransaction?: Transaction;
+  activePartnershipId: string | null;
 };
 
 export default function TransactionSheet(props: Props) {
   const editing = () => props.editTransaction;
   const [amount, setAmount] = createSignal(editing()?.amount?.toString() ?? "");
-  const [categoryId, setCategoryId] = createSignal(editing()?.category_id ?? "");
-  const [description, setDescription] = createSignal(editing()?.description ?? "");
+  const [categoryId, setCategoryId] = createSignal(
+    editing()?.category_id ?? "",
+  );
+  const [description, setDescription] = createSignal(
+    editing()?.description ?? "",
+  );
   const [accountId, setAccountId] = createSignal(editing()?.account_id ?? "");
-  const [toAccountId, setToAccountId] = createSignal(editing()?.to_account_id ?? "");
-  const [mode, setMode] = createSignal<"expense" | "income" | "transfer">(editing()?.type ?? "expense");
+  const [toAccountId, setToAccountId] = createSignal(
+    editing()?.to_account_id ?? "",
+  );
+  const [mode, setMode] = createSignal<"expense" | "income" | "transfer">(
+    editing()?.type ?? "expense",
+  );
   const [showManageCategories, setShowManageCategories] = createSignal(false);
   const [showRecurringModal, setShowRecurringModal] = createSignal(false);
-  const [isRecurring, setIsRecurring] = createSignal(!!editing()?.recurring_rule_id);
+  const [isRecurring, setIsRecurring] = createSignal(
+    !!editing()?.recurring_rule_id,
+  );
   const [frequency, setFrequency] = createSignal<Frequency>("monthly");
-  const [startDate, setStartDate] = createSignal(new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = createSignal(
+    new Date().toISOString().slice(0, 10),
+  );
   const [endDate, setEndDate] = createSignal("");
   let inputRef: HTMLInputElement | undefined;
 
@@ -37,16 +76,27 @@ export default function TransactionSheet(props: Props) {
 
   const handleAmountInput = (e: InputEvent) => {
     const val = (e.currentTarget as HTMLInputElement).value;
-    // Strip commas, keep only digits and one decimal point
     const stripped = val.replace(/[^0-9.]/g, "");
     const parts = stripped.split(".");
-    const clean = parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : stripped;
+    const clean =
+      parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : stripped;
     setAmount(clean);
   };
 
   const accountsQuery = createQuery(() => ({
-    queryKey: ["accounts"],
-    queryFn: fetchAccounts,
+    queryKey: ["accounts", props.activePartnershipId],
+    queryFn: () => fetchAccounts(props.activePartnershipId),
+  }));
+
+  const meQuery = createQuery(() => ({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+  }));
+
+  const partnershipsQuery = createQuery(() => ({
+    queryKey: ["partnerships"],
+    queryFn: fetchPartnerships,
+    enabled: props.activePartnershipId !== null,
   }));
 
   const categoriesQuery = createQuery(() => ({
@@ -54,12 +104,40 @@ export default function TransactionSheet(props: Props) {
     queryFn: fetchCategories,
   }));
 
-  // Fetch recurring rules when editing a recurring transaction
   const recurringRulesQuery = createQuery(() => ({
     queryKey: ["recurring-rules"],
     queryFn: fetchRecurringRules,
     enabled: !!editing(),
   }));
+
+  const myId = () => meQuery.data?.id ?? "";
+
+  const isCouple = () => {
+    if (!props.activePartnershipId) return false;
+    const p = partnershipsQuery.data?.find(
+      (x) => x.id === props.activePartnershipId,
+    );
+    return p?.type === "couple";
+  };
+
+  const ownAccounts = (accs: Account[]) =>
+    accs.filter((a) => !a.owner_user_id || a.owner_user_id === myId());
+
+  const accounts = () => accountsQuery.data ?? [];
+
+  // Accounts available to select as FROM account
+  const expenseFromAccounts = createMemo(() =>
+    isCouple() ? accounts() : ownAccounts(accounts()),
+  );
+  const nonCreditOwnAccounts = createMemo(() =>
+    ownAccounts(accounts()).filter((a) => a.type !== "credit"),
+  );
+
+  // For income + transfer: couple context includes partner's non-credit accounts
+  const nonCreditAccounts = createMemo(() => {
+    const base = isCouple() ? accounts() : ownAccounts(accounts());
+    return base.filter((a) => a.type !== "credit");
+  });
 
   // Pre-populate recurring state from existing rule when editing
   const [recurringInitialized, setRecurringInitialized] = createSignal(false);
@@ -71,10 +149,8 @@ export default function TransactionSheet(props: Props) {
 
     let rule: RecurringRule | undefined;
     if (tx.recurring_rule_id) {
-      // Direct match by rule ID
       rule = rules.find((r) => r.id === tx.recurring_rule_id);
     }
-    // Fallback: match by properties for old transactions without recurring_rule_id
     if (!rule) {
       rule = rules.find(
         (r) =>
@@ -94,14 +170,16 @@ export default function TransactionSheet(props: Props) {
   });
 
   const categories = () => categoriesQuery.data ?? [];
-  const filteredCategories = () => categories().filter((c) => c.type === mode());
+  const filteredCategories = () =>
+    categories().filter((c) => c.type === mode());
 
-  // Set default account selection once data is available (skip if editing with pre-set values)
   createEffect(() => {
     const accs = accountsQuery.data;
     if (accs && accs.length > 0 && !accountId()) {
-      setAccountId(accs[0].id);
-      if (accs.length > 1 && !toAccountId()) setToAccountId(accs[1].id);
+      const first = ownAccounts(accs)[0] ?? accs[0];
+      setAccountId(first.id);
+      const secondOwn = ownAccounts(accs).find((a) => a.id !== first.id);
+      if (secondOwn && !toAccountId()) setToAccountId(secondOwn.id);
     }
   });
 
@@ -109,7 +187,6 @@ export default function TransactionSheet(props: Props) {
     const cats = categoriesQuery.data;
     const m = mode();
     if (!cats || m === "transfer") return;
-    // Skip default category selection if editing already has a category set
     if (editing() && categoryId()) return;
     const typed = cats.filter((c) => c.type === m);
     if (typed.length === 0) return;
@@ -140,25 +217,20 @@ export default function TransactionSheet(props: Props) {
         ? await updateTransaction(tx.id, data)
         : await createTransaction(data);
 
-      // Handle recurring rule changes on edit
       if (tx) {
         const ruleId = tx.recurring_rule_id || matchedRuleId();
         const hadRule = !!ruleId;
         const wantsRecurring = isRecurring();
 
         if (hadRule && !wantsRecurring) {
-          // Turned off recurring — delete the rule
           await deleteRecurringRule(ruleId!);
         } else if (hadRule && wantsRecurring) {
-          // Update existing rule
           await updateRecurringRule(ruleId!, {
             frequency: frequency(),
             next_due: startDate(),
             end_date: endDate() || undefined,
           });
         }
-        // Note: creating a new rule on an existing non-recurring transaction
-        // is not supported — use the "new transaction" flow for that
       }
 
       return result;
@@ -197,7 +269,11 @@ export default function TransactionSheet(props: Props) {
     });
   };
 
-  const accounts = () => accountsQuery.data ?? [];
+  const accountLabel = (acc: Account) => {
+    const isPartner = acc.owner_user_id && acc.owner_user_id !== myId();
+    if (isPartner && acc.owner_name) return `${acc.owner_name}: ${acc.name}`;
+    return acc.name;
+  };
 
   return (
     <>
@@ -241,7 +317,9 @@ export default function TransactionSheet(props: Props) {
             onClick={() => setMode("expense")}
             class={cn(
               "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "expense" ? "bg-purple-600 text-white" : "text-gray-500",
+              mode() === "expense"
+                ? "bg-purple-600 text-white"
+                : "text-gray-500",
             )}
           >
             Spent
@@ -252,7 +330,7 @@ export default function TransactionSheet(props: Props) {
               setMode("income");
               const selectedAcc = accounts().find((a) => a.id === accountId());
               if (selectedAcc?.type === "credit") {
-                setAccountId(accounts().find((a) => a.type !== "credit")?.id ?? "");
+                setAccountId(nonCreditOwnAccounts()[0]?.id ?? "");
               }
             }}
             class={cn(
@@ -266,17 +344,23 @@ export default function TransactionSheet(props: Props) {
             type="button"
             onClick={() => {
               setMode("transfer");
-              const accs = accounts();
-              if (accs.find((a) => a.id === accountId())?.type === "credit") {
-                setAccountId(accs.find((a) => a.type !== "credit")?.id ?? "");
+              if (
+                accounts().find((a) => a.id === accountId())?.type === "credit"
+              ) {
+                setAccountId(nonCreditOwnAccounts()[0]?.id ?? "");
               }
-              if (accs.find((a) => a.id === toAccountId())?.type === "credit") {
+              if (
+                accounts().find((a) => a.id === toAccountId())?.type ===
+                "credit"
+              ) {
                 setToAccountId("");
               }
             }}
             class={cn(
               "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "transfer" ? "bg-cyan-500 text-white" : "text-gray-500",
+              mode() === "transfer"
+                ? "bg-cyan-500 text-white"
+                : "text-gray-500",
             )}
           >
             Transfer
@@ -289,12 +373,9 @@ export default function TransactionSheet(props: Props) {
         </p>
         <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
           <For
-            each={accounts().filter(
-              (a) =>
-                mode() !== "income" && mode() !== "transfer"
-                  ? true
-                  : a.type !== "credit",
-            )}
+            each={
+              mode() === "expense" ? expenseFromAccounts() : nonCreditAccounts()
+            }
           >
             {(acc) => (
               <button
@@ -307,7 +388,7 @@ export default function TransactionSheet(props: Props) {
                     : "bg-white/5 text-gray-400 hover:bg-white/10",
                 )}
               >
-                {acc.name}
+                {accountLabel(acc)}
               </button>
             )}
           </For>
@@ -317,11 +398,7 @@ export default function TransactionSheet(props: Props) {
         <Show when={mode() === "transfer"}>
           <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">To</p>
           <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-            <For
-              each={accounts().filter(
-                (a) => a.id !== accountId() && a.type !== "credit",
-              )}
-            >
+            <For each={nonCreditAccounts().filter((a) => a.id !== accountId())}>
               {(acc) => (
                 <button
                   type="button"
@@ -333,7 +410,7 @@ export default function TransactionSheet(props: Props) {
                       : "bg-white/5 text-gray-400 hover:bg-white/10",
                   )}
                 >
-                  {acc.name}
+                  {accountLabel(acc)}
                 </button>
               )}
             </For>
@@ -409,24 +486,33 @@ export default function TransactionSheet(props: Props) {
             class="flex-1 min-w-0 bg-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500"
           />
           <button
-              type="button"
-              onClick={() => setShowRecurringModal(true)}
+            type="button"
+            onClick={() => setShowRecurringModal(true)}
+            class={cn(
+              "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
+              isRecurring()
+                ? "bg-purple-600/30 ring-1 ring-purple-500"
+                : "bg-white/5",
+            )}
+            aria-label="Set recurring"
+          >
+            <svg
               class={cn(
-                "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
-                isRecurring() ? "bg-purple-600/30 ring-1 ring-purple-500" : "bg-white/5",
+                "w-5 h-5",
+                isRecurring() ? "text-purple-400" : "text-gray-500",
               )}
-              aria-label="Set recurring"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
             >
-              <svg
-                class={cn("w-5 h-5", isRecurring() ? "text-purple-400" : "text-gray-500")}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
         </div>
 
         {/* Recurring modal */}
@@ -440,19 +526,28 @@ export default function TransactionSheet(props: Props) {
             <h3 class="text-white font-semibold text-lg mb-6">Repeat</h3>
 
             {/* Frequency pills */}
-            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Occurrence</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+              Occurrence
+            </p>
             <div class="flex gap-2 flex-wrap mb-6">
-              <For each={[
-                { value: "daily", label: "Daily" },
-                { value: "weekly", label: "Weekly" },
-                { value: "biweekly", label: "Every 2 Weeks" },
-                { value: "monthly", label: "Monthly" },
-                { value: "yearly", label: "Yearly" },
-              ] as { value: Frequency; label: string }[]}>
+              <For
+                each={
+                  [
+                    { value: "daily", label: "Daily" },
+                    { value: "weekly", label: "Weekly" },
+                    { value: "biweekly", label: "Every 2 Weeks" },
+                    { value: "monthly", label: "Monthly" },
+                    { value: "yearly", label: "Yearly" },
+                  ] as { value: Frequency; label: string }[]
+                }
+              >
                 {(opt) => (
                   <button
                     type="button"
-                    onClick={() => { setIsRecurring(true); setFrequency(opt.value); }}
+                    onClick={() => {
+                      setIsRecurring(true);
+                      setFrequency(opt.value);
+                    }}
                     class={cn(
                       "px-4 py-2 rounded-full text-sm font-medium transition-colors",
                       isRecurring() && frequency() === opt.value
@@ -467,7 +562,9 @@ export default function TransactionSheet(props: Props) {
             </div>
 
             {/* Start date */}
-            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">{editing() ? "Next due" : "Start date"}</p>
+            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+              {editing() ? "Next due" : "Start date"}
+            </p>
             <input
               type="date"
               value={startDate()}
@@ -477,7 +574,9 @@ export default function TransactionSheet(props: Props) {
 
             {/* End date (optional) */}
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-gray-500 uppercase tracking-wider">End date</p>
+              <p class="text-xs text-gray-500 uppercase tracking-wider">
+                End date
+              </p>
               <Show when={endDate()}>
                 <button
                   type="button"
@@ -496,14 +595,19 @@ export default function TransactionSheet(props: Props) {
               placeholder="Indefinite"
               class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-2 [color-scheme:dark]"
             />
-            <p class="text-xs text-gray-500 mb-6">{endDate() ? "" : "No end date — repeats indefinitely"}</p>
+            <p class="text-xs text-gray-500 mb-6">
+              {endDate() ? "" : "No end date — repeats indefinitely"}
+            </p>
 
             {/* Actions */}
             <div class="flex gap-3">
               <Show when={isRecurring()}>
                 <button
                   type="button"
-                  onClick={() => { setIsRecurring(false); setShowRecurringModal(false); }}
+                  onClick={() => {
+                    setIsRecurring(false);
+                    setShowRecurringModal(false);
+                  }}
                   class="flex-1 py-3 rounded-2xl bg-white/5 text-gray-400 font-medium text-sm"
                 >
                   Turn Off

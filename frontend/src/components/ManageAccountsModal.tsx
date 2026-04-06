@@ -6,8 +6,11 @@ import {
 } from "@tanstack/solid-query";
 import {
   fetchAccounts,
+  fetchMe,
+  fetchPartnerships,
   updateAccount,
   deleteAccount,
+  setAccountPrivacy,
   type Account,
   type CreateAccountInput,
 } from "../lib/api";
@@ -15,6 +18,7 @@ import { cn } from "../lib/cn";
 
 type Props = {
   onClose: () => void;
+  activePartnershipId: string | null;
 };
 
 const ACCOUNT_TYPES: CreateAccountInput["type"][] = [
@@ -35,8 +39,29 @@ export default function ManageAccountsModal(props: Props) {
 
   const accountsQuery = createQuery(() => ({
     queryKey: ["accounts"],
-    queryFn: fetchAccounts,
+    queryFn: () => fetchAccounts(null),
   }));
+
+  const meQuery = createQuery(() => ({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+  }));
+
+  const partnershipsQuery = createQuery(() => ({
+    queryKey: ["partnerships"],
+    queryFn: fetchPartnerships,
+    enabled: props.activePartnershipId !== null,
+  }));
+
+  const myId = () => meQuery.data?.id ?? "";
+
+  const isGroupContext = () => {
+    if (!props.activePartnershipId) return false;
+    const p = partnershipsQuery.data?.find(
+      (x) => x.id === props.activePartnershipId,
+    );
+    return p?.type === "group";
+  };
 
   onMount(() => {
     document.body.style.overflow = "hidden";
@@ -77,6 +102,14 @@ export default function ManageAccountsModal(props: Props) {
     },
   }));
 
+  const privacyMutation = createMutation(() => ({
+    mutationFn: ({ id, isPrivate }: { id: string; isPrivate: boolean }) =>
+      setAccountPrivacy(id, isPrivate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
+  }));
+
   const startEdit = (account: Account) => {
     setEditingId(account.id);
     setEditName(account.name);
@@ -99,6 +132,12 @@ export default function ManageAccountsModal(props: Props) {
     setDeleteError(null);
     deleteMutation.mutate(id);
   };
+
+  // Only show own accounts in manage view
+  const ownAccounts = () =>
+    (accountsQuery.data ?? []).filter(
+      (a) => !a.owner_user_id || a.owner_user_id === myId(),
+    );
 
   return (
     <>
@@ -123,7 +162,7 @@ export default function ManageAccountsModal(props: Props) {
         </Show>
 
         <div class="space-y-2">
-          <For each={accountsQuery.data ?? []}>
+          <For each={ownAccounts()}>
             {(account) => (
               <Show
                 when={editingId() === account.id}
@@ -147,8 +186,66 @@ export default function ManageAccountsModal(props: Props) {
                       </p>
                       <p class="text-xs text-gray-500 capitalize">
                         {account.type}
+                        {account.is_private && (
+                          <span class="ml-1 text-amber-500">· private</span>
+                        )}
                       </p>
                     </div>
+                    {/* Privacy toggle — only in group context */}
+                    <Show when={isGroupContext()}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          privacyMutation.mutate({
+                            id: account.id,
+                            isPrivate: !account.is_private,
+                          })
+                        }
+                        disabled={privacyMutation.isPending}
+                        class={cn(
+                          "p-1.5 transition-colors disabled:opacity-50",
+                          account.is_private
+                            ? "text-amber-400 hover:text-amber-300"
+                            : "text-gray-600 hover:text-amber-400",
+                        )}
+                        aria-label={
+                          account.is_private ? "Make public" : "Make private"
+                        }
+                      >
+                        <Show
+                          when={account.is_private}
+                          fallback={
+                            <svg
+                              class="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+                              />
+                            </svg>
+                          }
+                        >
+                          <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM10 11V7a2 2 0 114 0v4"
+                            />
+                          </svg>
+                        </Show>
+                      </button>
+                    </Show>
                     <button
                       type="button"
                       onClick={() => startEdit(account)}

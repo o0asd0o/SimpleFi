@@ -1,6 +1,11 @@
 import { createSignal, For, Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
-import { fetchAnalytics, type AnalyticsPeriod } from "../lib/api";
+import {
+  fetchAnalytics,
+  fetchMe,
+  fetchPartnerships,
+  type AnalyticsPeriod,
+} from "../lib/api";
 import { cn } from "../lib/cn";
 
 type Breakdown = "category" | "account";
@@ -29,15 +34,50 @@ const PERIODS: { value: AnalyticsPeriod; label: string }[] = [
 ];
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(n);
+  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
+    n,
+  );
 
-export default function StatBars() {
+type Props = {
+  activePartnershipId: string | null;
+};
+
+export default function StatBars(props: Props) {
   const [period, setPeriod] = createSignal<AnalyticsPeriod>("30d");
   const [breakdown, setBreakdown] = createSignal<Breakdown>("category");
+  const [filterUserId, setFilterUserId] = createSignal<string | null>(null);
+
+  const meQuery = createQuery(() => ({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+  }));
+
+  const partnershipsQuery = createQuery(() => ({
+    queryKey: ["partnerships"],
+    queryFn: fetchPartnerships,
+    enabled: props.activePartnershipId !== null,
+  }));
+
+  const activePartnership = () =>
+    partnershipsQuery.data?.find((p) => p.id === props.activePartnershipId);
+
+  const myId = () => meQuery.data?.id ?? "";
+
+  // Partner members (not self) in the active partnership
+  const partnerMembers = () =>
+    activePartnership()?.members.filter(
+      (m) => m.user_id !== myId() && m.status === "active",
+    ) ?? [];
 
   const analyticsQuery = createQuery(() => ({
-    queryKey: ["analytics", period()],
-    queryFn: () => fetchAnalytics(period()),
+    queryKey: [
+      "analytics",
+      period(),
+      props.activePartnershipId,
+      filterUserId(),
+    ],
+    queryFn: () =>
+      fetchAnalytics(period(), props.activePartnershipId, filterUserId()),
   }));
 
   const data = () => analyticsQuery.data;
@@ -80,6 +120,52 @@ export default function StatBars() {
         </For>
       </div>
 
+      {/* Person filter chips — only shown in partnership context */}
+      <Show when={props.activePartnershipId !== null}>
+        <div class="flex gap-2 mb-4 overflow-x-auto scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setFilterUserId(null)}
+            class={cn(
+              "flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors",
+              filterUserId() === null
+                ? "bg-white/15 text-white"
+                : "text-gray-500 hover:text-gray-300",
+            )}
+          >
+            Combined
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterUserId(myId())}
+            class={cn(
+              "flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors",
+              filterUserId() === myId()
+                ? "bg-white/15 text-white"
+                : "text-gray-500 hover:text-gray-300",
+            )}
+          >
+            Me
+          </button>
+          <For each={partnerMembers()}>
+            {(m) => (
+              <button
+                type="button"
+                onClick={() => setFilterUserId(m.user_id)}
+                class={cn(
+                  "flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors",
+                  filterUserId() === m.user_id
+                    ? "bg-pink-500/20 text-pink-300"
+                    : "text-gray-500 hover:text-pink-300",
+                )}
+              >
+                {m.name}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+
       {/* Breakdown select */}
       <select
         value={breakdown()}
@@ -101,8 +187,12 @@ export default function StatBars() {
       >
         {/* Total */}
         <div class="mb-8">
-          <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">Total Spent</p>
-          <p class="text-white text-2xl font-semibold tabular-nums">{fmt(data()?.total ?? 0)}</p>
+          <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">
+            Total Spent
+          </p>
+          <p class="text-white text-2xl font-semibold tabular-nums">
+            {fmt(data()?.total ?? 0)}
+          </p>
         </div>
 
         {/* By Category */}
@@ -113,9 +203,12 @@ export default function StatBars() {
                 <li>
                   <div class="flex justify-between items-baseline mb-2">
                     <span class="text-white text-sm font-medium">
-                      {stat.icon ? stat.icon + " " : ""}{stat.category}
+                      {stat.icon ? stat.icon + " " : ""}
+                      {stat.category}
                     </span>
-                    <span class="text-gray-400 text-sm tabular-nums">{fmt(stat.amount)}</span>
+                    <span class="text-gray-400 text-sm tabular-nums">
+                      {fmt(stat.amount)}
+                    </span>
                   </div>
                   {bar(stat.percentage, CATEGORY_COLORS, i())}
                   <p class="text-right text-xs text-gray-600 mt-1 tabular-nums">
@@ -134,8 +227,12 @@ export default function StatBars() {
               {(stat, i) => (
                 <li>
                   <div class="flex justify-between items-baseline mb-2">
-                    <span class="text-white text-sm font-medium">{stat.account_name}</span>
-                    <span class="text-gray-400 text-sm tabular-nums">{fmt(stat.amount)}</span>
+                    <span class="text-white text-sm font-medium">
+                      {stat.account_name}
+                    </span>
+                    <span class="text-gray-400 text-sm tabular-nums">
+                      {fmt(stat.amount)}
+                    </span>
                   </div>
                   {bar(stat.percentage, ACCOUNT_COLORS, i())}
                   <p class="text-right text-xs text-gray-600 mt-1 tabular-nums">
