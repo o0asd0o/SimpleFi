@@ -9,7 +9,6 @@ import {
   fetchRecurringRules,
   fetchAccounts,
   fetchCategories,
-  type RecurringRule,
 } from "../lib/api";
 import { cn } from "../lib/cn";
 
@@ -56,7 +55,7 @@ export default function RecurringList() {
 
   const accountsQuery = createQuery(() => ({
     queryKey: ["accounts"],
-    queryFn: fetchAccounts,
+    queryFn: () => fetchAccounts(),
   }));
 
   const categoriesQuery = createQuery(() => ({

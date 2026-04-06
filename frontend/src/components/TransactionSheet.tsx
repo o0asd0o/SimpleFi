@@ -294,22 +294,6 @@ export default function TransactionSheet(props: Props) {
         {/* Handle bar */}
         <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
 
-        {/* Amount input */}
-        <label for="amount-input" class="sr-only">
-          Amount
-        </label>
-        <input
-          id="amount-input"
-          ref={inputRef}
-          type="text"
-          inputMode="decimal"
-          placeholder="0.00"
-          value={formattedAmount()}
-          onInput={handleAmountInput}
-          class="w-full text-6xl font-bold bg-transparent text-white text-center outline-none mb-2 placeholder:text-white/20"
-        />
-        <p class="text-center text-gray-500 text-sm mb-6">Enter amount</p>
-
         {/* Mode toggle */}
         <div class="flex bg-white/5 rounded-xl p-1 mb-4">
           <button
@@ -475,6 +459,22 @@ export default function TransactionSheet(props: Props) {
             onClose={() => setShowManageCategories(false)}
           />
         </Show>
+
+        {/* Amount input */}
+        <label for="amount-input" class="sr-only">
+          Amount
+        </label>
+        <input
+          id="amount-input"
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          placeholder="0.00"
+          value={formattedAmount()}
+          onInput={handleAmountInput}
+          class="w-full text-6xl font-bold bg-transparent text-white text-center outline-none mb-2 placeholder:text-white/20"
+        />
+        <p class="text-center text-gray-500 text-sm mb-6">Enter amount</p>
 
         {/* Description + Repeat */}
         <div class="relative flex items-center gap-2 mb-6">

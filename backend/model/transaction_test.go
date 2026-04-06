@@ -40,7 +40,7 @@ func TestCreateAndList(t *testing.T) {
 	}
 
 	// List returns both
-	page, err := model.List(db, testUserID, 100, "")
+	page, err := model.List(db, nil, testUserID, 100, "")
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestStatistics(t *testing.T) {
 	_, _ = model.Create(db, model.Transaction{Amount: 100, Type: "expense", Category: "Transport"}, testUserID)
 	_, _ = model.Create(db, model.Transaction{Amount: 500, Type: "income", Category: "Salary"}, testUserID) // excluded
 
-	stats, err := model.Statistics(db, testUserID, month)
+	stats, err := model.Statistics(db, nil, testUserID, month, "")
 	if err != nil {
 		t.Fatalf("Statistics: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestCreateTransfer(t *testing.T) {
 	if err := model.SeedDefaultAccountForUser(db, testUserID); err != nil {
 		t.Fatal(err)
 	}
-	accounts, err := model.ListAccounts(db, testUserID)
+	accounts, err := model.ListAccounts(db, testUserID, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestCreateTransfer(t *testing.T) {
 	}
 
 	// Verify transfer is in list
-	page, err := model.List(db, testUserID, 100, "")
+	page, err := model.List(db, nil, testUserID, 100, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestCreateTransfer(t *testing.T) {
 
 	// Verify transfer excluded from statistics
 	month := page.Items[0].CreatedAt.Format("2006-01")
-	stats, err := model.Statistics(db, testUserID, month)
+	stats, err := model.Statistics(db, nil, testUserID, month, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,8 +187,8 @@ func TestCrossUserIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p1, _ := model.List(db, user1, 100, "")
-	p2, _ := model.List(db, user2, 100, "")
+	p1, _ := model.List(db, nil, user1, 100, "")
+	p2, _ := model.List(db, nil, user2, 100, "")
 
 	if len(p1.Items) != 1 {
 		t.Errorf("user1: expected 1 transaction, got %d", len(p1.Items))

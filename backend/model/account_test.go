@@ -20,7 +20,7 @@ func TestSeedDefaultAccountForUser(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	accounts, err := model.ListAccounts(db, userID)
+	accounts, err := model.ListAccounts(db, userID, "")
 	if err != nil {
 		t.Fatalf("ListAccounts: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestCreateAndListAccounts(t *testing.T) {
 		t.Errorf("expected balance 0, got %.2f", savings.Balance)
 	}
 
-	accounts, err := model.ListAccounts(db, userID)
+	accounts, err := model.ListAccounts(db, userID, "")
 	if err != nil {
 		t.Fatalf("ListAccounts: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestAccountBalanceFromTransactions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	accounts, _ := model.ListAccounts(db, userID)
+	accounts, _ := model.ListAccounts(db, userID, "")
 	cashID := accounts[0].ID
 
 	// Income: +1000 to cash
@@ -95,7 +95,7 @@ func TestAccountBalanceFromTransactions(t *testing.T) {
 		t.Fatalf("Create expense: %v", err)
 	}
 
-	accounts, err = model.ListAccounts(db, userID)
+	accounts, err = model.ListAccounts(db, userID, "")
 	if err != nil {
 		t.Fatalf("ListAccounts: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestAccountBalanceWithTransfers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	accounts, _ := model.ListAccounts(db, userID)
+	accounts, _ := model.ListAccounts(db, userID, "")
 	cashID := accounts[0].ID
 
 	savings, err := model.CreateAccount(db, model.Account{Name: "Savings", Type: "savings"}, userID)
@@ -144,7 +144,7 @@ func TestAccountBalanceWithTransfers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	accounts, err = model.ListAccounts(db, userID)
+	accounts, err = model.ListAccounts(db, userID, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,8 +176,8 @@ func TestCrossUserAccountIsolation(t *testing.T) {
 	model.SeedDefaultAccountForUser(db, user2)
 	model.CreateAccount(db, model.Account{Name: "Extra", Type: "savings"}, user1)
 
-	a1, _ := model.ListAccounts(db, user1)
-	a2, _ := model.ListAccounts(db, user2)
+	a1, _ := model.ListAccounts(db, user1, "")
+	a2, _ := model.ListAccounts(db, user2, "")
 
 	if len(a1) != 2 {
 		t.Errorf("user1: expected 2 accounts, got %d", len(a1))
@@ -212,7 +212,7 @@ func TestUpdateAccount(t *testing.T) {
 	}
 
 	// Verify via list
-	accounts, _ := model.ListAccounts(db, userID)
+	accounts, _ := model.ListAccounts(db, userID, "")
 	if len(accounts) != 1 {
 		t.Fatalf("expected 1 account, got %d", len(accounts))
 	}
@@ -239,7 +239,7 @@ func TestDeleteAccount(t *testing.T) {
 		t.Fatalf("DeleteAccount: %v", err)
 	}
 
-	accounts, _ := model.ListAccounts(db, userID)
+	accounts, _ := model.ListAccounts(db, userID, "")
 	if len(accounts) != 0 {
 		t.Errorf("expected 0 accounts after delete, got %d", len(accounts))
 	}
@@ -269,7 +269,7 @@ func TestDeleteAccountWithTransactions(t *testing.T) {
 	}
 
 	// Account should still exist
-	accounts, _ := model.ListAccounts(db, userID)
+	accounts, _ := model.ListAccounts(db, userID, "")
 	if len(accounts) != 1 {
 		t.Errorf("expected account to still exist, got %d accounts", len(accounts))
 	}
