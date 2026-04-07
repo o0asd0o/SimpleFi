@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import { createMutation } from "@tanstack/solid-query";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 import { login, register, resetPassword, type AuthResponse } from "../lib/api";
 
 type Mode = "login" | "register" | "reset";

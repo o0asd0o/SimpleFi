@@ -13,6 +13,7 @@ const fmt = (n: number) =>
 
 type BalanceHeaderProps = {
   onMenuOpen: () => void;
+  onHomeClick: () => void;
   activePartnershipId: string | null;
 };
 
@@ -60,10 +61,15 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
   return (
     <header aria-label="Balance summary" class="px-6 pt-4 pb-6 text-center">
       <div class="flex items-center justify-between mb-4">
-        <p class="text-sm text-gray-400">
+        <button
+          type="button"
+          onClick={props.onHomeClick}
+          class="text-sm text-gray-400 transition-colors hover:text-white"
+          aria-label="Go to home"
+        >
           Hi,{" "}
           <span class="text-white font-medium">{meQuery.data?.name ?? ""}</span>
-        </p>
+        </button>
         <button
           type="button"
           onClick={props.onMenuOpen}

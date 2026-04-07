@@ -14,7 +14,7 @@ import {
   type Account,
   type CreateAccountInput,
 } from "../lib/api";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 
 type Props = {

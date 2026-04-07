@@ -6,7 +6,7 @@ import {
   fetchPartnerships,
   type AnalyticsPeriod,
 } from "../lib/api";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 
 type Breakdown = "category" | "account";
 

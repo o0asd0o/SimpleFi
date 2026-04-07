@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 
 type PassphraseModalProps = {
   passphrase: string;

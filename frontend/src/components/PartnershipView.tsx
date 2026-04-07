@@ -4,7 +4,7 @@ import {
   createQuery,
   useQueryClient,
 } from "@tanstack/solid-query";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 import {
   fetchPartnerships,
   fetchInvitations,

@@ -40,4 +40,14 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "solid-vendor": ["solid-js", "solid-js/web", "solid-js/store"],
+          "query-vendor": ["@tanstack/solid-query"],
+        },
+      },
+    },
+  },
 });

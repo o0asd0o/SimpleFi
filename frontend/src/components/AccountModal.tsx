@@ -1,7 +1,7 @@
 import { createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { createMutation, useQueryClient } from "@tanstack/solid-query";
 import { createAccount, CreateAccountInput } from "../lib/api";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 
 type Props = {

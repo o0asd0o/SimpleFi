@@ -1,6 +1,8 @@
 import { render } from "solid-js/web";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
 import App from "./App";
+// @ts-expect-error — no type declarations needed for font side-effect import
+import "@fontsource-variable/manrope";
 import "./index.css";
 
 const queryClient = new QueryClient();

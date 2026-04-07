@@ -27,7 +27,7 @@ import {
   type RecurringRule,
   type Account,
 } from "../lib/api";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 import ManageCategoriesModal from "./ManageCategoriesModal";
 

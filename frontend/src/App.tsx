@@ -62,6 +62,7 @@ export default function App() {
         <div class="min-h-screen bg-app-bg text-white max-w-md mx-auto relative pb-28">
           <BalanceHeader
             onMenuOpen={() => setIsSidebarOpen(true)}
+            onHomeClick={() => setActiveView("home")}
             activePartnershipId={activePartnershipId()}
           />
 

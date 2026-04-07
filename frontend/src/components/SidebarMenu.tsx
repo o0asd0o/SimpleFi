@@ -1,6 +1,6 @@
 import { onCleanup, onMount, Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 import { fetchInvitations } from "../lib/api";
 
 type ViewType = "home" | "analytics" | "recurring" | "partnerships";
