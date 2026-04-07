@@ -36,6 +36,7 @@ type Props = {
   editTransaction?: Transaction;
   activePartnershipId: string | null;
   initialMode?: "expense" | "income" | "transfer";
+  initialAccountId?: string;
   initialToAccountId?: string;
 };
 
@@ -58,7 +59,9 @@ export default function TransactionSheet(props: Props) {
   const [description, setDescription] = createSignal(
     editing()?.description ?? "",
   );
-  const [accountId, setAccountId] = createSignal(editing()?.account_id ?? "");
+  const [accountId, setAccountId] = createSignal(
+    editing()?.account_id ?? props.initialAccountId ?? "",
+  );
   const [toAccountId, setToAccountId] = createSignal(
     editing()?.to_account_id ?? props.initialToAccountId ?? "",
   );

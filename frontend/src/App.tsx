@@ -25,6 +25,9 @@ export default function App() {
   const [creditPayTarget, setCreditPayTarget] = createSignal<string | null>(
     null,
   );
+  const [incomeAccountTarget, setIncomeAccountTarget] = createSignal<
+    string | null
+  >(null);
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
   const [activeView, setActiveView] = createSignal<
     "home" | "analytics" | "recurring" | "partnerships"
@@ -80,7 +83,14 @@ export default function App() {
               activePartnershipId={activePartnershipId()}
               onPayCredit={(id) => {
                 setEditingTx(null);
+                setIncomeAccountTarget(null);
                 setCreditPayTarget(id);
+                setIsSheetOpen(true);
+              }}
+              onAccountTap={(id) => {
+                setEditingTx(null);
+                setCreditPayTarget(null);
+                setIncomeAccountTarget(id);
                 setIsSheetOpen(true);
               }}
             />
@@ -130,12 +140,20 @@ export default function App() {
             <TransactionSheet
               editTransaction={editingTx() ?? undefined}
               activePartnershipId={activePartnershipId()}
-              initialMode={creditPayTarget() ? "transfer" : undefined}
+              initialMode={
+                creditPayTarget()
+                  ? "transfer"
+                  : incomeAccountTarget()
+                    ? "income"
+                    : undefined
+              }
+              initialAccountId={incomeAccountTarget() ?? undefined}
               initialToAccountId={creditPayTarget() ?? undefined}
               onClose={() => {
                 setIsSheetOpen(false);
                 setEditingTx(null);
                 setCreditPayTarget(null);
+                setIncomeAccountTarget(null);
               }}
             />
           </Show>

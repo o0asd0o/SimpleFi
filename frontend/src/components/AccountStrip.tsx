@@ -13,6 +13,7 @@ const fmt = (n: number) =>
 type Props = {
   activePartnershipId: string | null;
   onPayCredit: (accountId: string) => void;
+  onAccountTap: (accountId: string) => void;
 };
 
 export default function AccountStrip(props: Props) {
@@ -78,12 +79,14 @@ export default function AccountStrip(props: Props) {
           {(account) => (
             <div
               class={cn(
-                "flex-shrink-0 bg-white/5 rounded-xl px-4 py-2.5",
-                account.type === "credit" &&
-                  "cursor-pointer hover:bg-white/10 active:scale-95 transition-all",
+                "flex-shrink-0 bg-white/5 rounded-xl px-4 py-2.5 cursor-pointer hover:bg-white/10 active:scale-95 transition-all",
               )}
               onClick={() => {
-                if (account.type === "credit") props.onPayCredit(account.id);
+                if (account.type === "credit") {
+                  props.onPayCredit(account.id);
+                } else {
+                  props.onAccountTap(account.id);
+                }
               }}
             >
               <Show
