@@ -22,7 +22,7 @@ export default function SidebarMenu(props: Props) {
   const invitationsQuery = createQuery(() => ({
     queryKey: ["invitations"],
     queryFn: fetchInvitations,
-    refetchInterval: 30000,
+    enabled: false,
   }));
 
   const pendingCount = () => invitationsQuery.data?.length ?? 0;

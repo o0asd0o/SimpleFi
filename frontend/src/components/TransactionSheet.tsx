@@ -28,6 +28,7 @@ import {
   type Account,
 } from "../lib/api";
 import { cn } from "../lib/cn";
+import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 import ManageCategoriesModal from "./ManageCategoriesModal";
 
 type Props = {
@@ -36,7 +37,17 @@ type Props = {
   activePartnershipId: string | null;
 };
 
+const FORM_QUERY_STALE_TIME = 60_000;
+
+const formQueryOptions = {
+  staleTime: FORM_QUERY_STALE_TIME,
+  refetchOnMount: false as const,
+  refetchOnWindowFocus: false as const,
+  refetchOnReconnect: false as const,
+};
+
 export default function TransactionSheet(props: Props) {
+  const scrollbarOffset = getScrollbarOffset();
   const editing = () => props.editTransaction;
   const [amount, setAmount] = createSignal(editing()?.amount?.toString() ?? "");
   const [categoryId, setCategoryId] = createSignal(
@@ -63,6 +74,7 @@ export default function TransactionSheet(props: Props) {
   );
   const [endDate, setEndDate] = createSignal("");
   let inputRef: HTMLInputElement | undefined;
+  let unlockBodyScroll = () => {};
 
   const queryClient = useQueryClient();
 
@@ -74,40 +86,87 @@ export default function TransactionSheet(props: Props) {
     return parts.join(".");
   };
 
+  const sanitizeAmountValue = (value: string) => {
+    const stripped = value.replace(/[^0-9.]/g, "");
+    const [whole = "", ...fractionParts] = stripped.split(".");
+
+    if (fractionParts.length === 0) {
+      return whole;
+    }
+
+    return `${whole}.${fractionParts.join("")}`;
+  };
+
   const handleAmountInput = (e: InputEvent) => {
     const val = (e.currentTarget as HTMLInputElement).value;
-    const stripped = val.replace(/[^0-9.]/g, "");
-    const parts = stripped.split(".");
-    const clean =
-      parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : stripped;
-    setAmount(clean);
+    setAmount(sanitizeAmountValue(val));
+  };
+
+  const handleAmountKeyDown = (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    const allowedKeys = new Set([
+      "Backspace",
+      "Delete",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+      "Tab",
+      "Enter",
+      "Escape",
+    ]);
+
+    if (allowedKeys.has(e.key)) return;
+
+    if (/^[0-9]$/.test(e.key)) return;
+
+    if (e.key === ".") {
+      const input = e.currentTarget as HTMLInputElement;
+      const selectionStart = input.selectionStart ?? 0;
+      const selectionEnd = input.selectionEnd ?? selectionStart;
+      const selectedText = input.value.slice(selectionStart, selectionEnd);
+
+      if (!amount().includes(".") || selectedText.includes(".")) {
+        return;
+      }
+    }
+
+    e.preventDefault();
   };
 
   const accountsQuery = createQuery(() => ({
     queryKey: ["accounts", props.activePartnershipId],
     queryFn: () => fetchAccounts(props.activePartnershipId),
+    ...formQueryOptions,
   }));
 
   const meQuery = createQuery(() => ({
     queryKey: ["me"],
     queryFn: fetchMe,
+    ...formQueryOptions,
   }));
 
   const partnershipsQuery = createQuery(() => ({
     queryKey: ["partnerships"],
     queryFn: fetchPartnerships,
     enabled: props.activePartnershipId !== null,
+    ...formQueryOptions,
   }));
 
   const categoriesQuery = createQuery(() => ({
     queryKey: ["categories"],
     queryFn: fetchCategories,
+    ...formQueryOptions,
   }));
 
   const recurringRulesQuery = createQuery(() => ({
     queryKey: ["recurring-rules"],
     queryFn: fetchRecurringRules,
     enabled: !!editing(),
+    ...formQueryOptions,
   }));
 
   const myId = () => meQuery.data?.id ?? "";
@@ -196,7 +255,7 @@ export default function TransactionSheet(props: Props) {
   });
 
   onMount(() => {
-    document.body.style.overflow = "hidden";
+    unlockBodyScroll = lockBodyScroll();
     inputRef?.focus();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") props.onClose();
@@ -207,7 +266,7 @@ export default function TransactionSheet(props: Props) {
   });
 
   onCleanup(() => {
-    document.body.style.overflow = "";
+    unlockBodyScroll();
   });
 
   const mutation = createMutation(() => ({
@@ -290,6 +349,7 @@ export default function TransactionSheet(props: Props) {
         aria-modal="true"
         aria-label={editing() ? "Edit transaction" : "Add transaction"}
         class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-h-[90vh] overflow-y-auto"
+        style={{ right: `${scrollbarOffset}px` }}
       >
         {/* Handle bar */}
         <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
@@ -471,6 +531,7 @@ export default function TransactionSheet(props: Props) {
           inputMode="decimal"
           placeholder="0.00"
           value={formattedAmount()}
+          onKeyDown={handleAmountKeyDown}
           onInput={handleAmountInput}
           class="w-full text-6xl font-bold bg-transparent text-white text-center outline-none mb-2 placeholder:text-white/20"
         />
@@ -521,7 +582,10 @@ export default function TransactionSheet(props: Props) {
             class="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
             onClick={() => setShowRecurringModal(false)}
           />
-          <div class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter">
+          <div
+            class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter"
+            style={{ right: `${scrollbarOffset}px` }}
+          >
             <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
             <h3 class="text-white font-semibold text-lg mb-6">Repeat</h3>
 

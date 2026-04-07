@@ -5,6 +5,22 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
+queryClient.setQueryDefaults(["categories"], {
+  staleTime: Infinity,
+  gcTime: 30 * 60 * 1000,
+  refetchOnMount: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+});
+
+queryClient.setQueryDefaults(["invitations"], {
+  staleTime: 30 * 1000,
+  gcTime: 30 * 60 * 1000,
+  refetchOnMount: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+});
+
 render(
   () => (
     <QueryClientProvider client={queryClient}>

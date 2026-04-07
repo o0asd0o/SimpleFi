@@ -2,6 +2,7 @@ import { createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { createMutation, useQueryClient } from "@tanstack/solid-query";
 import { createAccount, CreateAccountInput } from "../lib/api";
 import { cn } from "../lib/cn";
+import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 
 type Props = {
   onClose: () => void;
@@ -15,14 +16,16 @@ const ACCOUNT_TYPES: CreateAccountInput["type"][] = [
 ];
 
 export default function AccountModal(props: Props) {
+  const scrollbarOffset = getScrollbarOffset();
   const [name, setName] = createSignal("");
   const [accountType, setAccountType] =
     createSignal<CreateAccountInput["type"]>("savings");
   let inputRef: HTMLInputElement | undefined;
+  let unlockBodyScroll = () => {};
   const queryClient = useQueryClient();
 
   onMount(() => {
-    document.body.style.overflow = "hidden";
+    unlockBodyScroll = lockBodyScroll();
     inputRef?.focus();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") props.onClose();
@@ -32,7 +35,7 @@ export default function AccountModal(props: Props) {
   });
 
   onCleanup(() => {
-    document.body.style.overflow = "";
+    unlockBodyScroll();
   });
 
   const mutation = createMutation(() => ({
@@ -63,6 +66,7 @@ export default function AccountModal(props: Props) {
         aria-modal="true"
         aria-label="Add account"
         class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-w-md mx-auto"
+        style={{ right: `${scrollbarOffset}px` }}
       >
         <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
         <h2 class="text-white font-semibold text-xl text-center mb-6">
