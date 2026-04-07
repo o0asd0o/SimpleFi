@@ -207,12 +207,11 @@ func Update(db *sql.DB, id string, tx Transaction, userID string) (Transaction, 
 
 // Delete removes a transaction if the caller has permission (owns an account involved).
 func Delete(db *sql.DB, id string, accountIDs []string, callerUserID string) error {
-	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
-	args := append([]any{id}, whereArgs...)
-	res, err := db.Exec(
-		`DELETE FROM transactions WHERE id = ? AND `+whereClause,
-		args...,
-	)
+	// Verify access first using GetTransaction (which aliases the table correctly)
+	if _, err := GetTransaction(db, id, accountIDs, callerUserID); err != nil {
+		return err // sql.ErrNoRows if not found or no permission
+	}
+	res, err := db.Exec(`DELETE FROM transactions WHERE id = ?`, id)
 	if err != nil {
 		return err
 	}

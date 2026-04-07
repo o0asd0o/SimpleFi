@@ -194,6 +194,26 @@ export default function RecentList(props: Props) {
                     <div class="absolute inset-0 bg-black/80 flex items-center justify-center gap-3 z-20 px-4">
                       <button
                         type="button"
+                        onClick={() => setDeleteConfirmId(null)}
+                        class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center flex-shrink-0"
+                        aria-label="Cancel"
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => skipMut.mutate(tx.id)}
                         disabled={skipMut.isPending}
                         class="flex-1 py-3 rounded-xl bg-white/10 text-white text-sm font-medium disabled:opacity-50"

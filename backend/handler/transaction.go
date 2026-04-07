@@ -115,10 +115,23 @@ func HandleCreateTransaction(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		created, err := model.Create(db, tx, userID)
-		if err != nil {
-			http.Error(w, "failed to create transaction", http.StatusInternalServerError)
-			return
+		// Determine if start_date is in the future (skip initial transaction entry)
+		startIsFuture := false
+		if body.Recurring && body.StartDate != "" {
+			if parsed, err := time.Parse("2006-01-02", body.StartDate); err == nil {
+				today := time.Now().UTC().Truncate(24 * time.Hour)
+				startIsFuture = parsed.UTC().Truncate(24 * time.Hour).After(today)
+			}
+		}
+
+		var created model.Transaction
+		if !startIsFuture {
+			var err error
+			created, err = model.Create(db, tx, userID)
+			if err != nil {
+				http.Error(w, "failed to create transaction", http.StatusInternalServerError)
+				return
+			}
 		}
 
 		// If marked as recurring, also create a recurring rule
@@ -147,7 +160,7 @@ func HandleCreateTransaction(db *sql.DB) http.HandlerFunc {
 			}
 			if createdRule, err := model.CreateRecurringRule(db, rule, userID); err != nil {
 				log.Printf("warning: created transaction but failed to create recurring rule: %v", err)
-			} else {
+			} else if !startIsFuture && created.ID != "" {
 				model.SetRecurringRuleID(db, created.ID, userID, createdRule.ID)
 				created.RecurringRuleID = createdRule.ID
 			}
