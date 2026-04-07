@@ -191,12 +191,12 @@ func migrate(db *sql.DB) error {
 
 	// Seed default global categories (idempotent via INSERT OR IGNORE + UNIQUE name)
 	defaultCategories := []struct{ id, name, icon, catType string }{
+		{"cat-general", "General", "📦", "expense"},
 		{"cat-food", "Food", "🍔", "expense"},
 		{"cat-transport", "Transport", "🚗", "expense"},
 		{"cat-bills", "Bills", "🧾", "expense"},
 		{"cat-entertainment", "Entertainment", "🎬", "expense"},
 		{"cat-salary", "Salary", "💰", "income"},
-		{"cat-general", "General", "📦", "expense"},
 		{"cat-gift", "Gift", "🎁", "income"},
 		{"cat-others", "Others", "📦", "income"},
 	}
@@ -206,6 +206,10 @@ func migrate(db *sql.DB) error {
 			c.id, c.name, c.icon, c.catType, i,
 		)
 		if err != nil {
+			return err
+		}
+		// Update sort_order on existing rows (INSERT OR IGNORE skips them)
+		if _, err := db.Exec(`UPDATE categories SET sort_order = ? WHERE id = ?`, i, c.id); err != nil {
 			return err
 		}
 	}
