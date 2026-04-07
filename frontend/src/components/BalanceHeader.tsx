@@ -76,7 +76,8 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
         (t) =>
           t.type === "expense" &&
           t.status !== "pending" &&
-          !creditAccountIds().has(t.account_id),
+          // Exclude credit card payments (they reduce debt, not spending)
+          !(t.to_account_id && creditAccountIds().has(t.to_account_id)),
       )
       .reduce((sum, t) => sum + t.amount, 0);
 
