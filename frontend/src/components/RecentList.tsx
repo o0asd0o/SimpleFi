@@ -16,7 +16,8 @@ import {
   fetchMe,
   type Transaction,
 } from "../lib/api";
-import { cn } from "../lib/cn";
+import { createSwipeHandlers } from "../lib/swipe";
+import { clsx as cn } from "clsx";
 
 const PAGE_SIZE = 15;
 
@@ -175,25 +176,13 @@ export default function RecentList(props: Props) {
         <ul>
           <For each={transactions()}>
             {(tx) => {
-              let touchStartX = 0;
-              let touchStartY = 0;
-
               const isOpen = () => openId() === tx.id;
               const isPartnerTx = () => !!tx.user_id && tx.user_id !== myId();
-
-              const handleTouchStart = (e: TouchEvent) => {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-                if (openId() !== null && openId() !== tx.id) setOpenId(null);
-              };
-
-              const handleTouchEnd = (e: TouchEvent) => {
-                const dx = e.changedTouches[0].clientX - touchStartX;
-                const dy = e.changedTouches[0].clientY - touchStartY;
-                if (Math.abs(dx) < Math.abs(dy)) return;
-                if (dx < -40) setOpenId(tx.id);
-                else if (dx > 20 && isOpen()) setOpenId(null);
-              };
+              const { handleTouchStart, handleTouchEnd } = createSwipeHandlers(
+                tx.id,
+                openId,
+                setOpenId,
+              );
 
               return (
                 <li class="overflow-hidden relative">
@@ -270,7 +259,7 @@ export default function RecentList(props: Props) {
                             {accountName(tx.to_account_id ?? "")}
                           </Show>
                         </p>
-                        <p class="text-gray-500 text-xs mt-0.5">
+                        <p class="text-gray-500 text-xs mt-0.5 truncate">
                           <Show
                             when={tx.type === "transfer"}
                             fallback={
@@ -310,7 +299,7 @@ export default function RecentList(props: Props) {
                       </div>
                       <span
                         class={cn(
-                          "font-mono text-sm font-medium flex-shrink-0",
+                          "font-mono text-sm font-medium flex-shrink-0 max-w-[120px] text-right",
                           tx.type === "expense"
                             ? "text-purple-400"
                             : tx.type === "transfer"

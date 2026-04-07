@@ -1,7 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
 import { fetchAccounts, fetchMe } from "../lib/api";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
 import AccountModal from "./AccountModal";
 import ManageAccountsModal from "./ManageAccountsModal";
 

@@ -11,8 +11,22 @@ const fmt = (n: number) =>
     n,
   );
 
+const fmtBalance = (n: number) => {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      notation: "compact",
+      maximumFractionDigits: 2,
+    }).format(n);
+  }
+  return fmt(n);
+};
+
 type BalanceHeaderProps = {
   onMenuOpen: () => void;
+  onHomeClick: () => void;
   activePartnershipId: string | null;
 };
 
@@ -60,10 +74,15 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
   return (
     <header aria-label="Balance summary" class="px-6 pt-4 pb-6 text-center">
       <div class="flex items-center justify-between mb-4">
-        <p class="text-sm text-gray-400">
+        <button
+          type="button"
+          onClick={props.onHomeClick}
+          class="text-sm text-gray-400 transition-colors hover:text-white"
+          aria-label="Go to home"
+        >
           Hi,{" "}
           <span class="text-white font-medium">{meQuery.data?.name ?? ""}</span>
-        </p>
+        </button>
         <button
           type="button"
           onClick={props.onMenuOpen}
@@ -88,8 +107,17 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
       <p class="text-xs font-medium tracking-widest text-gray-500 uppercase mb-3">
         {balanceLabel()}
       </p>
-      <div class="text-5xl font-bold text-white mb-4 tabular-nums">
-        {fmt(balance())}
+      <div
+        class="font-bold text-white mb-4 tabular-nums transition-all"
+        classList={{
+          "text-5xl": Math.abs(balance()) < 1_000_000,
+          "text-4xl":
+            Math.abs(balance()) >= 1_000_000 &&
+            Math.abs(balance()) < 1_000_000_000,
+          "text-3xl": Math.abs(balance()) >= 1_000_000_000,
+        }}
+      >
+        {fmtBalance(balance())}
       </div>
       <div class="flex justify-center gap-6 text-sm">
         <div class="flex items-center gap-2">

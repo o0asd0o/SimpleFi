@@ -14,7 +14,8 @@ import {
   type Account,
   type CreateAccountInput,
 } from "../lib/api";
-import { cn } from "../lib/cn";
+import { clsx as cn } from "clsx";
+import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 
 type Props = {
   onClose: () => void;
@@ -29,12 +30,14 @@ const ACCOUNT_TYPES: CreateAccountInput["type"][] = [
 ];
 
 export default function ManageAccountsModal(props: Props) {
+  const scrollbarOffset = getScrollbarOffset();
   const [editingId, setEditingId] = createSignal<string | null>(null);
   const [editName, setEditName] = createSignal("");
   const [editType, setEditType] =
     createSignal<CreateAccountInput["type"]>("cash");
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   let editInputRef: HTMLInputElement | undefined;
+  let unlockBodyScroll = () => {};
   const queryClient = useQueryClient();
 
   const accountsQuery = createQuery(() => ({
@@ -64,7 +67,7 @@ export default function ManageAccountsModal(props: Props) {
   };
 
   onMount(() => {
-    document.body.style.overflow = "hidden";
+    unlockBodyScroll = lockBodyScroll();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (editingId()) {
@@ -79,7 +82,7 @@ export default function ManageAccountsModal(props: Props) {
   });
 
   onCleanup(() => {
-    document.body.style.overflow = "";
+    unlockBodyScroll();
   });
 
   const updateMutation = createMutation(() => ({
@@ -151,6 +154,7 @@ export default function ManageAccountsModal(props: Props) {
         aria-modal="true"
         aria-label="Manage accounts"
         class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-w-md mx-auto max-h-[80vh] overflow-y-auto"
+        style={{ right: `${scrollbarOffset}px` }}
       >
         <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
         <h2 class="text-white font-semibold text-xl text-center mb-6">

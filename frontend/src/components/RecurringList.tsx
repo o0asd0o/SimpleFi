@@ -10,7 +10,8 @@ import {
   fetchAccounts,
   fetchCategories,
 } from "../lib/api";
-import { cn } from "../lib/cn";
+import { createSwipeHandlers } from "../lib/swipe";
+import { clsx as cn } from "clsx";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -114,24 +115,12 @@ export default function RecurringList() {
         <ul class="space-y-2">
           <For each={rules()}>
             {(rule) => {
-              let touchStartX = 0;
-              let touchStartY = 0;
-
               const isOpen = () => openId() === rule.id;
-
-              const handleTouchStart = (e: TouchEvent) => {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-                if (openId() !== null && openId() !== rule.id) setOpenId(null);
-              };
-
-              const handleTouchEnd = (e: TouchEvent) => {
-                const dx = e.changedTouches[0].clientX - touchStartX;
-                const dy = e.changedTouches[0].clientY - touchStartY;
-                if (Math.abs(dx) < Math.abs(dy)) return;
-                if (dx < -40) setOpenId(rule.id);
-                else if (dx > 20 && isOpen()) setOpenId(null);
-              };
+              const { handleTouchStart, handleTouchEnd } = createSwipeHandlers(
+                rule.id,
+                openId,
+                setOpenId,
+              );
 
               return (
                 <li class="overflow-hidden rounded-xl bg-white/5">
