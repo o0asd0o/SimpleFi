@@ -22,6 +22,9 @@ export default function App() {
   const [passphrase, setPassphrase] = createSignal<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = createSignal(false);
   const [editingTx, setEditingTx] = createSignal<Transaction | null>(null);
+  const [creditPayTarget, setCreditPayTarget] = createSignal<string | null>(
+    null,
+  );
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
   const [activeView, setActiveView] = createSignal<
     "home" | "analytics" | "recurring" | "partnerships"
@@ -73,11 +76,23 @@ export default function App() {
           />
 
           <Show when={activeView() === "home"}>
-            <AccountStrip activePartnershipId={activePartnershipId()} />
+            <AccountStrip
+              activePartnershipId={activePartnershipId()}
+              onPayCredit={(id) => {
+                setEditingTx(null);
+                setCreditPayTarget(id);
+                setIsSheetOpen(true);
+              }}
+            />
             <RecentList
               activePartnershipId={activePartnershipId()}
               onEdit={(tx) => {
                 setEditingTx(tx);
+                setIsSheetOpen(true);
+              }}
+              onPayCredit={(id) => {
+                setEditingTx(null);
+                setCreditPayTarget(id);
                 setIsSheetOpen(true);
               }}
             />
@@ -115,9 +130,12 @@ export default function App() {
             <TransactionSheet
               editTransaction={editingTx() ?? undefined}
               activePartnershipId={activePartnershipId()}
+              initialMode={creditPayTarget() ? "transfer" : undefined}
+              initialToAccountId={creditPayTarget() ?? undefined}
               onClose={() => {
                 setIsSheetOpen(false);
                 setEditingTx(null);
+                setCreditPayTarget(null);
               }}
             />
           </Show>

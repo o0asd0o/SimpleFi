@@ -48,6 +48,7 @@ func ListAccountsByIDs(db *sql.DB, accountIDs []string, callerUserID string) ([]
 		  - COALESCE(SUM(CASE WHEN t.type = 'expense'  AND t.account_id = a.id    THEN t.amount ELSE 0 END), 0)
 		  - COALESCE(SUM(CASE WHEN t.type = 'transfer' AND t.account_id = a.id    THEN t.amount ELSE 0 END), 0)
 		  + COALESCE(SUM(CASE WHEN t.type = 'transfer' AND t.to_account_id = a.id THEN t.amount ELSE 0 END), 0)
+		  + COALESCE(SUM(CASE WHEN t.type = 'expense'  AND t.to_account_id = a.id THEN t.amount ELSE 0 END), 0)
 		  AS balance
 		FROM accounts a
 		LEFT JOIN users u ON u.id = a.user_id

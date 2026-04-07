@@ -40,6 +40,7 @@ const fmt = (n: number) =>
 
 type Props = {
   onEdit: (tx: Transaction) => void;
+  onPayCredit: (accountId: string) => void;
   activePartnershipId: string | null;
 };
 
@@ -86,6 +87,8 @@ export default function RecentList(props: Props) {
   const transactions = () => txQuery.data?.pages.flatMap((p) => p.items) ?? [];
   const accountName = (id: string) =>
     (accountsQuery.data ?? []).find((a) => a.id === id)?.name ?? "";
+  const accountType = (id: string) =>
+    (accountsQuery.data ?? []).find((a) => a.id === id)?.type ?? "";
   const categoryIcon = (id: string) =>
     (categoriesQuery.data ?? []).find((c) => c.id === id)?.icon ?? "";
 
@@ -245,7 +248,10 @@ export default function RecentList(props: Props) {
                       <div class="flex-1 min-w-0">
                         <p class="text-white text-sm font-medium truncate">
                           <Show
-                            when={tx.type === "transfer"}
+                            when={
+                              tx.type === "transfer" ||
+                              (tx.type === "expense" && tx.to_account_id)
+                            }
                             fallback={
                               <>
                                 {tx.category_id
@@ -263,13 +269,20 @@ export default function RecentList(props: Props) {
                           <Show
                             when={tx.type === "transfer"}
                             fallback={
-                              <>
-                                {tx.description ? tx.category + " · " : ""}
-                                {tx.account_id
-                                  ? accountName(tx.account_id) + " · "
-                                  : ""}
-                                {formatDate(tx.created_at)}
-                              </>
+                              <Show
+                                when={tx.type === "expense" && tx.to_account_id}
+                                fallback={
+                                  <>
+                                    {tx.description ? tx.category + " · " : ""}
+                                    {tx.account_id
+                                      ? accountName(tx.account_id) + " · "
+                                      : ""}
+                                    {formatDate(tx.created_at)}
+                                  </>
+                                }
+                              >
+                                Credit Payment · {formatDate(tx.created_at)}
+                              </Show>
                             }
                           >
                             Transfer · {formatDate(tx.created_at)}
@@ -320,7 +333,14 @@ export default function RecentList(props: Props) {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            confirmMut.mutate(tx.id);
+                            if (
+                              tx.to_account_id &&
+                              accountType(tx.to_account_id) === "credit"
+                            ) {
+                              props.onPayCredit(tx.to_account_id);
+                            } else {
+                              confirmMut.mutate(tx.id);
+                            }
                           }}
                           disabled={confirmMut.isPending}
                           class="ml-1 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0 disabled:opacity-50"

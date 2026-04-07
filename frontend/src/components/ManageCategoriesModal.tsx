@@ -39,7 +39,9 @@ export default function ManageCategoriesModal(props: Props) {
   }));
 
   const filtered = () =>
-    (categoriesQuery.data ?? []).filter((c) => c.type === props.categoryType);
+    (categoriesQuery.data ?? []).filter(
+      (c) => c.type === props.categoryType && c.id !== "cat-card-payment",
+    );
 
   onMount(() => {
     unlockBodyScroll = lockBodyScroll();

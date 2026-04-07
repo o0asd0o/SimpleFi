@@ -23,8 +23,11 @@ type Category struct {
 var DefaultCategoryIDs = []string{
 	"cat-food", "cat-transport", "cat-bills",
 	"cat-entertainment", "cat-salary", "cat-general",
-	"cat-gift", "cat-others",
+	"cat-gift", "cat-others", "cat-card-payment",
 }
+
+// CardPaymentCategoryID is the reserved category for credit card payments.
+const CardPaymentCategoryID = "cat-card-payment"
 
 func ListCategoriesForUser(db *sql.DB, userID string) ([]Category, error) {
 	rows, err := db.Query(`

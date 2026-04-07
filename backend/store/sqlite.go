@@ -132,6 +132,9 @@ func migrate(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_transactions_recurring_rule_id ON transactions(recurring_rule_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_transactions_to_account_id ON transactions(to_account_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_transactions_recurring_status ON transactions(recurring_rule_id, status, user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_recurring_rules_due ON recurring_rules(user_id, active, next_due)`,
 	}
 	for _, idx := range indexes {
 		if _, err := db.Exec(idx); err != nil {
@@ -196,6 +199,7 @@ func migrate(db *sql.DB) error {
 		{"cat-transport", "Transport", "🚗", "expense"},
 		{"cat-bills", "Bills", "🧾", "expense"},
 		{"cat-entertainment", "Entertainment", "🎬", "expense"},
+		{"cat-card-payment", "Card Payment", "💳", "expense"},
 		{"cat-salary", "Salary", "💰", "income"},
 		{"cat-gift", "Gift", "🎁", "income"},
 		{"cat-others", "Others", "📦", "income"},
@@ -212,6 +216,17 @@ func migrate(db *sql.DB) error {
 		if _, err := db.Exec(`UPDATE categories SET sort_order = ? WHERE id = ?`, i, c.id); err != nil {
 			return err
 		}
+	}
+
+	// Seed card-payment category for all existing users who don't have it yet
+	if _, err := db.Exec(`
+		INSERT OR IGNORE INTO user_categories (user_id, category_id)
+		SELECT u.id, 'cat-card-payment' FROM users u
+		WHERE NOT EXISTS (
+			SELECT 1 FROM user_categories uc WHERE uc.user_id = u.id AND uc.category_id = 'cat-card-payment'
+		)
+	`); err != nil {
+		return err
 	}
 
 	return nil
