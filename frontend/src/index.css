@@ -42,7 +42,7 @@ input[type="number"] {
   }
 }
 
-@keyframes slide-in-right {
+@keyframes sidebar-enter {
   from {
     transform: translateX(100%);
   }
@@ -51,7 +51,7 @@ input[type="number"] {
   }
 }
 
-@keyframes fade-in {
+@keyframes sidebar-backdrop-enter {
   from {
     opacity: 0;
   }
@@ -64,10 +64,13 @@ input[type="number"] {
   .sheet-enter {
     animation: slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  .sidebar-enter {
-    animation: slide-in-right 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+
+  .sidebar-panel-enter {
+    animation: sidebar-enter 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
   }
-  .sidebar-backdrop {
-    animation: fade-in 0.2s ease-out;
+
+  .sidebar-backdrop-enter {
+    animation: sidebar-backdrop-enter 0.2s ease-out;
   }
 }

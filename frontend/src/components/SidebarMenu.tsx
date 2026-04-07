@@ -13,6 +13,12 @@ type Props = {
 };
 
 export default function SidebarMenu(props: Props) {
+  const scrollbarOffset = Math.max(
+    window.innerWidth - document.documentElement.clientWidth,
+    0,
+  );
+  const previousBodyOverflow = document.body.style.overflow;
+
   const invitationsQuery = createQuery(() => ({
     queryKey: ["invitations"],
     queryFn: fetchInvitations,
@@ -31,7 +37,7 @@ export default function SidebarMenu(props: Props) {
   });
 
   onCleanup(() => {
-    document.body.style.overflow = "";
+    document.body.style.overflow = previousBodyOverflow;
   });
 
   const handleNav = (view: ViewType) => {
@@ -43,7 +49,9 @@ export default function SidebarMenu(props: Props) {
     <>
       {/* Backdrop */}
       <div
-        class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm sidebar-backdrop"
+        class={cn(
+          "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm sidebar-backdrop-enter",
+        )}
         onClick={props.onClose}
         aria-hidden="true"
       />
@@ -53,7 +61,8 @@ export default function SidebarMenu(props: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
-        class="fixed inset-y-0 right-0 z-50 w-64 bg-sheet-bg flex flex-col sidebar-enter"
+        class="fixed inset-y-0 z-50 flex w-64 flex-col bg-sheet-bg sidebar-panel-enter"
+        style={{ right: `${scrollbarOffset}px` }}
       >
         {/* Header */}
         <div class="px-6 pt-10 pb-6 border-b border-white/5">
