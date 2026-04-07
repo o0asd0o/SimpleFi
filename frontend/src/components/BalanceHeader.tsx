@@ -11,6 +11,19 @@ const fmt = (n: number) =>
     n,
   );
 
+const fmtBalance = (n: number) => {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      notation: "compact",
+      maximumFractionDigits: 2,
+    }).format(n);
+  }
+  return fmt(n);
+};
+
 type BalanceHeaderProps = {
   onMenuOpen: () => void;
   onHomeClick: () => void;
@@ -94,8 +107,17 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
       <p class="text-xs font-medium tracking-widest text-gray-500 uppercase mb-3">
         {balanceLabel()}
       </p>
-      <div class="text-5xl font-bold text-white mb-4 tabular-nums">
-        {fmt(balance())}
+      <div
+        class="font-bold text-white mb-4 tabular-nums transition-all"
+        classList={{
+          "text-5xl": Math.abs(balance()) < 1_000_000,
+          "text-4xl":
+            Math.abs(balance()) >= 1_000_000 &&
+            Math.abs(balance()) < 1_000_000_000,
+          "text-3xl": Math.abs(balance()) >= 1_000_000_000,
+        }}
+      >
+        {fmtBalance(balance())}
       </div>
       <div class="flex justify-center gap-6 text-sm">
         <div class="flex items-center gap-2">

@@ -116,7 +116,11 @@ export default function RecurringList() {
           <For each={rules()}>
             {(rule) => {
               const isOpen = () => openId() === rule.id;
-              const { handleTouchStart, handleTouchEnd } = createSwipeHandlers(rule.id, openId, setOpenId);
+              const { handleTouchStart, handleTouchEnd } = createSwipeHandlers(
+                rule.id,
+                openId,
+                setOpenId,
+              );
 
               return (
                 <li class="overflow-hidden rounded-xl bg-white/5">

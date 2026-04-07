@@ -259,7 +259,7 @@ export default function RecentList(props: Props) {
                             {accountName(tx.to_account_id ?? "")}
                           </Show>
                         </p>
-                        <p class="text-gray-500 text-xs mt-0.5">
+                        <p class="text-gray-500 text-xs mt-0.5 truncate">
                           <Show
                             when={tx.type === "transfer"}
                             fallback={
@@ -299,7 +299,7 @@ export default function RecentList(props: Props) {
                       </div>
                       <span
                         class={cn(
-                          "font-mono text-sm font-medium flex-shrink-0",
+                          "font-mono text-sm font-medium flex-shrink-0 max-w-[120px] text-right",
                           tx.type === "expense"
                             ? "text-purple-400"
                             : tx.type === "transfer"
