@@ -1,11 +1,19 @@
 import { createQuery } from "@tanstack/solid-query";
-import { fetchAllTransactions, fetchAccounts, fetchMe } from "../lib/api";
+import {
+  fetchAllTransactions,
+  fetchAccounts,
+  fetchMe,
+  fetchPartnerships,
+} from "../lib/api";
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(n);
+  new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
+    n,
+  );
 
 type BalanceHeaderProps = {
   onMenuOpen: () => void;
+  activePartnershipId: string | null;
 };
 
 export default function BalanceHeader(props: BalanceHeaderProps) {
@@ -14,12 +22,17 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
     queryFn: fetchMe,
   }));
   const accountsQuery = createQuery(() => ({
-    queryKey: ["accounts"],
-    queryFn: fetchAccounts,
+    queryKey: ["accounts", props.activePartnershipId],
+    queryFn: () => fetchAccounts(props.activePartnershipId),
   }));
   const transactionsQuery = createQuery(() => ({
-    queryKey: ["transactions-summary"],
-    queryFn: fetchAllTransactions,
+    queryKey: ["transactions-summary", props.activePartnershipId],
+    queryFn: () => fetchAllTransactions(props.activePartnershipId),
+  }));
+  const partnershipsQuery = createQuery(() => ({
+    queryKey: ["partnerships"],
+    queryFn: fetchPartnerships,
+    enabled: props.activePartnershipId !== null,
   }));
 
   const accounts = () => accountsQuery.data ?? [];
@@ -35,11 +48,21 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
       .filter((t) => t.type === "expense" && t.status !== "pending")
       .reduce((sum, t) => sum + t.amount, 0);
 
+  const balanceLabel = () => {
+    if (!props.activePartnershipId) return "Total Balance";
+    const p = partnershipsQuery.data?.find(
+      (x) => x.id === props.activePartnershipId,
+    );
+    if (p?.type === "couple") return "Combined Balance";
+    return "Group Balance";
+  };
+
   return (
     <header aria-label="Balance summary" class="px-6 pt-4 pb-6 text-center">
       <div class="flex items-center justify-between mb-4">
         <p class="text-sm text-gray-400">
-          Hi, <span class="text-white font-medium">{meQuery.data?.name ?? ""}</span>
+          Hi,{" "}
+          <span class="text-white font-medium">{meQuery.data?.name ?? ""}</span>
         </p>
         <button
           type="button"
@@ -47,13 +70,23 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
           class="p-1.5 -mr-1.5 text-gray-400 hover:text-white transition-colors"
           aria-label="Open menu"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
           </svg>
         </button>
       </div>
       <p class="text-xs font-medium tracking-widest text-gray-500 uppercase mb-3">
-        Total Balance
+        {balanceLabel()}
       </p>
       <div class="text-5xl font-bold text-white mb-4 tabular-nums">
         {fmt(balance())}

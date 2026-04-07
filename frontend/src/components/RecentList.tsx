@@ -1,6 +1,21 @@
 import { createEffect, createSignal, For, on, Show } from "solid-js";
-import { createInfiniteQuery, createMutation, createQuery, useQueryClient } from "@tanstack/solid-query";
-import { deleteTransaction, confirmTransaction, skipTransaction, deleteRecurringRule, fetchTransactions, fetchAccounts, fetchCategories, type Transaction } from "../lib/api";
+import {
+  createInfiniteQuery,
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from "@tanstack/solid-query";
+import {
+  deleteTransaction,
+  confirmTransaction,
+  skipTransaction,
+  deleteRecurringRule,
+  fetchTransactions,
+  fetchAccounts,
+  fetchCategories,
+  fetchMe,
+  type Transaction,
+} from "../lib/api";
 import { cn } from "../lib/cn";
 
 const PAGE_SIZE = 15;
@@ -24,12 +39,22 @@ const fmt = (n: number) =>
 
 type Props = {
   onEdit: (tx: Transaction) => void;
+  activePartnershipId: string | null;
 };
 
 export default function RecentList(props: Props) {
   const [openId, setOpenId] = createSignal<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = createSignal<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = createSignal<string | null>(
+    null,
+  );
   const queryClient = useQueryClient();
+
+  const meQuery = createQuery(() => ({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+  }));
+
+  const myId = () => meQuery.data?.id ?? "";
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -41,24 +66,23 @@ export default function RecentList(props: Props) {
   };
 
   const txQuery = createInfiniteQuery(() => ({
-    queryKey: ["transactions"],
+    queryKey: ["transactions", props.activePartnershipId],
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      fetchTransactions(PAGE_SIZE, pageParam),
+      fetchTransactions(PAGE_SIZE, pageParam, props.activePartnershipId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
   }));
 
   const accountsQuery = createQuery(() => ({
-    queryKey: ["accounts"],
-    queryFn: fetchAccounts,
+    queryKey: ["accounts", props.activePartnershipId],
+    queryFn: () => fetchAccounts(props.activePartnershipId),
   }));
   const categoriesQuery = createQuery(() => ({
     queryKey: ["categories"],
     queryFn: fetchCategories,
   }));
 
-  const transactions = () =>
-    txQuery.data?.pages.flatMap((p) => p.items) ?? [];
+  const transactions = () => txQuery.data?.pages.flatMap((p) => p.items) ?? [];
   const accountName = (id: string) =>
     (accountsQuery.data ?? []).find((a) => a.id === id)?.name ?? "";
   const categoryIcon = (id: string) =>
@@ -109,7 +133,11 @@ export default function RecentList(props: Props) {
     observer?.disconnect();
     observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && txQuery.hasNextPage && !txQuery.isFetchingNextPage) {
+        if (
+          entries[0].isIntersecting &&
+          txQuery.hasNextPage &&
+          !txQuery.isFetchingNextPage
+        ) {
           txQuery.fetchNextPage();
         }
       },
@@ -151,18 +179,17 @@ export default function RecentList(props: Props) {
               let touchStartY = 0;
 
               const isOpen = () => openId() === tx.id;
+              const isPartnerTx = () => !!tx.user_id && tx.user_id !== myId();
 
               const handleTouchStart = (e: TouchEvent) => {
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
-                // Close any other open item
                 if (openId() !== null && openId() !== tx.id) setOpenId(null);
               };
 
               const handleTouchEnd = (e: TouchEvent) => {
                 const dx = e.changedTouches[0].clientX - touchStartX;
                 const dy = e.changedTouches[0].clientY - touchStartY;
-                // Ignore if more vertical than horizontal
                 if (Math.abs(dx) < Math.abs(dy)) return;
                 if (dx < -40) setOpenId(tx.id);
                 else if (dx > 20 && isOpen()) setOpenId(null);
@@ -181,30 +208,41 @@ export default function RecentList(props: Props) {
                       >
                         Skip this one
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => stopRuleMut.mutate(tx)}
-                        disabled={stopRuleMut.isPending}
-                        class="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-medium disabled:opacity-50"
-                      >
-                        Stop all future
-                      </button>
+                      {/* Hide "Stop all future" for partner's recurring transactions */}
+                      <Show when={!isPartnerTx()}>
+                        <button
+                          type="button"
+                          onClick={() => stopRuleMut.mutate(tx)}
+                          disabled={stopRuleMut.isPending}
+                          class="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-medium disabled:opacity-50"
+                        >
+                          Stop all future
+                        </button>
+                      </Show>
                     </div>
                   </Show>
 
-                  {/* Sliding wrapper — contains row + action buttons side by side */}
+                  {/* Sliding wrapper */}
                   <div
                     class="flex transition-transform duration-200 ease-out"
-                    style={{ transform: isOpen() ? "translateX(-144px)" : "translateX(0)" }}
+                    style={{
+                      transform: isOpen()
+                        ? "translateX(-144px)"
+                        : "translateX(0)",
+                    }}
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
-                    onClick={() => { if (isOpen()) setOpenId(null); }}
+                    onClick={() => {
+                      if (isOpen()) setOpenId(null);
+                    }}
                   >
                     {/* Row content */}
-                    <div class={cn(
-                      "flex items-center gap-4 px-6 py-4 border-b border-white/5 w-full flex-shrink-0",
-                      tx.status === "pending" && "opacity-50",
-                    )}>
+                    <div
+                      class={cn(
+                        "flex items-center gap-4 px-6 py-4 border-b border-white/5 w-full flex-shrink-0",
+                        tx.status === "pending" && "opacity-50",
+                      )}
+                    >
                       <div
                         class={cn(
                           "w-2 h-2 rounded-full flex-shrink-0",
@@ -221,7 +259,9 @@ export default function RecentList(props: Props) {
                             when={tx.type === "transfer"}
                             fallback={
                               <>
-                                {tx.category_id ? categoryIcon(tx.category_id) + " " : ""}
+                                {tx.category_id
+                                  ? categoryIcon(tx.category_id) + " "
+                                  : ""}
                                 {tx.description || tx.category}
                               </>
                             }
@@ -246,9 +286,25 @@ export default function RecentList(props: Props) {
                             Transfer · {formatDate(tx.created_at)}
                           </Show>
                           <Show when={tx.recurring_rule_id}>
-                            <svg class="w-3 h-3 text-purple-400 inline ml-1 align-middle" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            <svg
+                              class="w-3 h-3 text-purple-400 inline ml-1 align-middle"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
                             </svg>
+                          </Show>
+                          {/* Show "by Name" for partner transactions */}
+                          <Show when={isPartnerTx() && tx.user_name}>
+                            <span class="text-pink-400/70 ml-1">
+                              · by {tx.user_name}
+                            </span>
                           </Show>
                         </p>
                       </div>
@@ -262,20 +318,37 @@ export default function RecentList(props: Props) {
                               : "text-blue-400",
                         )}
                       >
-                        {tx.type === "expense" ? "-" : tx.type === "income" ? "+" : ""}
+                        {tx.type === "expense"
+                          ? "-"
+                          : tx.type === "income"
+                            ? "+"
+                            : ""}
                         ₱{fmt(tx.amount)}
                       </span>
                       {/* Confirm button for pending transactions */}
                       <Show when={tx.status === "pending"}>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); confirmMut.mutate(tx.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmMut.mutate(tx.id);
+                          }}
                           disabled={confirmMut.isPending}
                           class="ml-1 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0 disabled:opacity-50"
                           aria-label="Confirm transaction"
                         >
-                          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                          <svg
+                            class="w-4 h-4 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="3"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                         </button>
                       </Show>
@@ -284,14 +357,30 @@ export default function RecentList(props: Props) {
                     {/* Edit button — revealed on swipe */}
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setOpenId(null); props.onEdit(tx); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenId(null);
+                        props.onEdit(tx);
+                      }}
                       class="w-[72px] flex-shrink-0 bg-blue-500 flex flex-col items-center justify-center gap-1 text-white"
                       aria-label="Edit transaction"
                     >
-                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
                       </svg>
-                      <span class="text-[10px] font-semibold uppercase tracking-wide">Edit</span>
+                      <span class="text-[10px] font-semibold uppercase tracking-wide">
+                        Edit
+                      </span>
                     </button>
 
                     {/* Delete button — revealed on swipe */}
@@ -309,10 +398,22 @@ export default function RecentList(props: Props) {
                       class="w-[72px] flex-shrink-0 bg-red-500 flex flex-col items-center justify-center gap-1 text-white disabled:opacity-60"
                       aria-label="Delete transaction"
                     >
-                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
-                      <span class="text-[10px] font-semibold uppercase tracking-wide">Delete</span>
+                      <span class="text-[10px] font-semibold uppercase tracking-wide">
+                        Delete
+                      </span>
                     </button>
                   </div>
                 </li>

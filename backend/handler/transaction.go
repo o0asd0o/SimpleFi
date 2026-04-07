@@ -17,10 +17,18 @@ func HandleListTransactions(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
 
-		// Lazy-generate pending recurring transactions
+		// Lazy-generate pending recurring transactions (always for the current user's own rules)
 		if err := model.GeneratePendingTransactions(db, userID); err != nil {
 			log.Printf("warning: failed to generate recurring transactions: %v", err)
 		}
+
+		partnershipID := r.URL.Query().Get("partnership_id")
+		own, partner, err := model.GetVisibleAccountIDs(db, userID, partnershipID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+		allIDs := append(own, partner...)
 
 		limit := 15
 		if l := r.URL.Query().Get("limit"); l != "" {
@@ -30,7 +38,7 @@ func HandleListTransactions(db *sql.DB) http.HandlerFunc {
 		}
 		cursor := r.URL.Query().Get("cursor")
 
-		page, err := model.List(db, userID, limit, cursor)
+		page, err := model.List(db, allIDs, userID, limit, cursor)
 		if err != nil {
 			http.Error(w, "failed to list transactions", http.StatusInternalServerError)
 			return
@@ -73,7 +81,6 @@ func HandleCreateTransaction(db *sql.DB) http.HandlerFunc {
 				return
 			}
 		}
-
 		if body.Recurring {
 			validFreqs := map[string]bool{"daily": true, "weekly": true, "biweekly": true, "monthly": true, "yearly": true}
 			if !validFreqs[body.Frequency] {
@@ -83,6 +90,31 @@ func HandleCreateTransaction(db *sql.DB) http.HandlerFunc {
 		}
 
 		userID := auth.UserIDFromContext(r.Context())
+
+		// Validate write access to the account(s)
+		if tx.AccountID != "" {
+			ok, err := model.IsAccountWritableBy(db, tx.AccountID, userID)
+			if err != nil {
+				http.Error(w, "failed to validate account access", http.StatusInternalServerError)
+				return
+			}
+			if !ok {
+				http.Error(w, "account not accessible", http.StatusForbidden)
+				return
+			}
+		}
+		if tx.ToAccountID != "" {
+			ok, err := model.IsAccountWritableBy(db, tx.ToAccountID, userID)
+			if err != nil {
+				http.Error(w, "failed to validate account access", http.StatusInternalServerError)
+				return
+			}
+			if !ok {
+				http.Error(w, "to_account not accessible", http.StatusForbidden)
+				return
+			}
+		}
+
 		created, err := model.Create(db, tx, userID)
 		if err != nil {
 			http.Error(w, "failed to create transaction", http.StatusInternalServerError)
@@ -93,11 +125,9 @@ func HandleCreateTransaction(db *sql.DB) http.HandlerFunc {
 		if body.Recurring && body.Frequency != "" {
 			var nextDueStr string
 			if body.StartDate != "" {
-				// Use the user-specified start date as next_due
 				if parsed, err := time.Parse("2006-01-02", body.StartDate); err == nil {
 					nextDueStr = parsed.Format("2006-01-02")
 				} else {
-					// Fallback: advance from today
 					nextDueStr = model.AdvanceDatePublic(time.Now().UTC(), body.Frequency).Format("2006-01-02")
 				}
 			} else {
@@ -118,7 +148,6 @@ func HandleCreateTransaction(db *sql.DB) http.HandlerFunc {
 			if createdRule, err := model.CreateRecurringRule(db, rule, userID); err != nil {
 				log.Printf("warning: created transaction but failed to create recurring rule: %v", err)
 			} else {
-				// Link the transaction to the rule
 				model.SetRecurringRuleID(db, created.ID, userID, createdRule.ID)
 				created.RecurringRuleID = createdRule.ID
 			}
@@ -178,7 +207,14 @@ func HandleDeleteTransaction(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		userID := auth.UserIDFromContext(r.Context())
-		if err := model.Delete(db, id, userID); err != nil {
+
+		allIDs, err := model.GetUnionVisibleAccountIDs(db, userID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+
+		if err := model.Delete(db, id, allIDs, userID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "transaction not found", http.StatusNotFound)
 				return
@@ -195,8 +231,14 @@ func HandleConfirmTransaction(db *sql.DB) http.HandlerFunc {
 		id := r.PathValue("id")
 		userID := auth.UserIDFromContext(r.Context())
 
-		// Get the transaction first to find its recurring_rule_id
-		tx, err := model.GetTransaction(db, id, userID)
+		allIDs, err := model.GetUnionVisibleAccountIDs(db, userID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+
+		// Validate access and get recurring_rule_id
+		tx, err := model.GetTransaction(db, id, allIDs, userID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "transaction not found", http.StatusNotFound)
@@ -206,7 +248,7 @@ func HandleConfirmTransaction(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := model.ConfirmTransaction(db, id, userID); err != nil {
+		if err := model.ConfirmTransaction(db, id); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				// Already confirmed — treat as success
 				w.WriteHeader(http.StatusOK)
@@ -216,9 +258,9 @@ func HandleConfirmTransaction(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Advance the recurring rule's next_due
+		// Advance the recurring rule's next_due (rule is owned by whoever created the rule)
 		if tx.RecurringRuleID != "" {
-			if err := model.AdvanceNextDue(db, tx.RecurringRuleID, userID); err != nil {
+			if err := model.AdvanceNextDue(db, tx.RecurringRuleID); err != nil {
 				log.Printf("warning: confirmed transaction but failed to advance recurring rule: %v", err)
 			}
 		}
@@ -232,8 +274,14 @@ func HandleSkipTransaction(db *sql.DB) http.HandlerFunc {
 		id := r.PathValue("id")
 		userID := auth.UserIDFromContext(r.Context())
 
-		// Get the transaction first to find its recurring_rule_id
-		tx, err := model.GetTransaction(db, id, userID)
+		allIDs, err := model.GetUnionVisibleAccountIDs(db, userID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+
+		// Validate access and get recurring_rule_id
+		tx, err := model.GetTransaction(db, id, allIDs, userID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "transaction not found", http.StatusNotFound)
@@ -244,14 +292,14 @@ func HandleSkipTransaction(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Delete the pending transaction
-		if err := model.Delete(db, id, userID); err != nil {
+		if err := model.Delete(db, id, allIDs, userID); err != nil {
 			http.Error(w, "failed to skip transaction", http.StatusInternalServerError)
 			return
 		}
 
 		// Advance the recurring rule's next_due
 		if tx.RecurringRuleID != "" {
-			if err := model.AdvanceNextDue(db, tx.RecurringRuleID, userID); err != nil {
+			if err := model.AdvanceNextDue(db, tx.RecurringRuleID); err != nil {
 				log.Printf("warning: skipped transaction but failed to advance recurring rule: %v", err)
 			}
 		}
@@ -268,7 +316,17 @@ func HandleGetStatistics(db *sql.DB) http.HandlerFunc {
 		}
 
 		userID := auth.UserIDFromContext(r.Context())
-		stats, err := model.Statistics(db, userID, month)
+		partnershipID := r.URL.Query().Get("partnership_id")
+		filterUserID := r.URL.Query().Get("user_id")
+
+		own, partner, err := model.GetVisibleAccountIDs(db, userID, partnershipID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+		allIDs := append(own, partner...)
+
+		stats, err := model.Statistics(db, allIDs, userID, month, filterUserID)
 		if err != nil {
 			http.Error(w, "failed to get statistics", http.StatusInternalServerError)
 			return
@@ -287,7 +345,17 @@ func HandleGetAnalytics(db *sql.DB) http.HandlerFunc {
 		}
 
 		userID := auth.UserIDFromContext(r.Context())
-		result, err := model.Analytics(db, userID, period)
+		partnershipID := r.URL.Query().Get("partnership_id")
+		filterUserID := r.URL.Query().Get("user_id")
+
+		own, partner, err := model.GetVisibleAccountIDs(db, userID, partnershipID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+		allIDs := append(own, partner...)
+
+		result, err := model.Analytics(db, allIDs, userID, period, filterUserID)
 		if err != nil {
 			if errors.Is(err, model.ErrInvalidPeriod) {
 				http.Error(w, err.Error(), http.StatusBadRequest)

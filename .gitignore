@@ -8,3 +8,5 @@ dist/
 .agents
 .claude
 .github
+data.db
+data.db-*

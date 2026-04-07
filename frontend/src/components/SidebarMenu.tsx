@@ -1,7 +1,9 @@
-import { onCleanup, onMount } from "solid-js";
+import { onCleanup, onMount, Show } from "solid-js";
+import { createQuery } from "@tanstack/solid-query";
 import { cn } from "../lib/cn";
+import { fetchInvitations } from "../lib/api";
 
-type ViewType = "home" | "analytics" | "recurring";
+type ViewType = "home" | "analytics" | "recurring" | "partnerships";
 
 type Props = {
   activeView: ViewType;
@@ -11,6 +13,14 @@ type Props = {
 };
 
 export default function SidebarMenu(props: Props) {
+  const invitationsQuery = createQuery(() => ({
+    queryKey: ["invitations"],
+    queryFn: fetchInvitations,
+    refetchInterval: 30000,
+  }));
+
+  const pendingCount = () => invitationsQuery.data?.length ?? 0;
+
   onMount(() => {
     document.body.style.overflow = "hidden";
     const onKeyDown = (e: KeyboardEvent) => {
@@ -126,6 +136,36 @@ export default function SidebarMenu(props: Props) {
               />
             </svg>
             Recurring
+          </button>
+          <button
+            type="button"
+            onClick={() => handleNav("partnerships")}
+            class={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
+              props.activeView === "partnerships"
+                ? "bg-purple-600/20 text-purple-400"
+                : "text-gray-400 hover:bg-white/5 hover:text-white",
+            )}
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span class="flex-1 text-left">Partnerships</span>
+            <Show when={pendingCount() > 0}>
+              <span class="bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                {pendingCount()}
+              </span>
+            </Show>
           </button>
         </div>
 

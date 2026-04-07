@@ -42,7 +42,7 @@ func TestRegisterAndAuthenticate(t *testing.T) {
 	}
 
 	// Verify default Cash account was seeded
-	accounts, err := model.ListAccounts(db, user.ID)
+	accounts, err := model.ListAccounts(db, user.ID, "")
 	if err != nil {
 		t.Fatal(err)
 	}
