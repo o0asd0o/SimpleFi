@@ -35,6 +35,9 @@ type Props = {
   onClose: () => void;
   editTransaction?: Transaction;
   activePartnershipId: string | null;
+  initialMode?: "expense" | "income" | "transfer";
+  initialAccountId?: string;
+  initialToAccountId?: string;
 };
 
 const FORM_QUERY_STALE_TIME = 60_000;
@@ -56,12 +59,14 @@ export default function TransactionSheet(props: Props) {
   const [description, setDescription] = createSignal(
     editing()?.description ?? "",
   );
-  const [accountId, setAccountId] = createSignal(editing()?.account_id ?? "");
+  const [accountId, setAccountId] = createSignal(
+    editing()?.account_id ?? props.initialAccountId ?? "",
+  );
   const [toAccountId, setToAccountId] = createSignal(
-    editing()?.to_account_id ?? "",
+    editing()?.to_account_id ?? props.initialToAccountId ?? "",
   );
   const [mode, setMode] = createSignal<"expense" | "income" | "transfer">(
-    editing()?.type ?? "expense",
+    editing()?.type ?? props.initialMode ?? "expense",
   );
   const [showManageCategories, setShowManageCategories] = createSignal(false);
   const [showRecurringModal, setShowRecurringModal] = createSignal(false);
@@ -198,6 +203,16 @@ export default function TransactionSheet(props: Props) {
     return base.filter((a) => a.type !== "credit");
   });
 
+  // Transfer "To" allows ALL account types including credit (pay off credit card)
+  const transferToAccounts = createMemo(() => {
+    const base = isCouple() ? accounts() : ownAccounts(accounts());
+    return base.filter((a) => a.id !== accountId());
+  });
+
+  const isPayingCreditCard = () =>
+    mode() === "transfer" &&
+    accounts().find((a) => a.id === toAccountId())?.type === "credit";
+
   // Pre-populate recurring state from existing rule when editing
   const [recurringInitialized, setRecurringInitialized] = createSignal(false);
   const [matchedRuleId, setMatchedRuleId] = createSignal<string | undefined>();
@@ -230,7 +245,9 @@ export default function TransactionSheet(props: Props) {
 
   const categories = () => categoriesQuery.data ?? [];
   const filteredCategories = () =>
-    categories().filter((c) => c.type === mode());
+    categories().filter(
+      (c) => c.type === mode() && c.id !== "cat-card-payment",
+    );
 
   createEffect(() => {
     const accs = accountsQuery.data;
@@ -314,10 +331,16 @@ export default function TransactionSheet(props: Props) {
     if (!accountId()) return;
     if (mode() === "transfer" && !toAccountId()) return;
 
+    const payingCredit = isPayingCreditCard();
+
     mutation.mutate({
       amount: parsed,
-      type: mode(),
-      category_id: mode() === "transfer" ? undefined : categoryId(),
+      type: payingCredit ? "expense" : mode(),
+      category_id: payingCredit
+        ? "cat-card-payment"
+        : mode() === "transfer"
+          ? undefined
+          : categoryId(),
       description: description() || undefined,
       account_id: accountId(),
       to_account_id: mode() === "transfer" ? toAccountId() : undefined,
@@ -388,17 +411,13 @@ export default function TransactionSheet(props: Props) {
             type="button"
             onClick={() => {
               setMode("transfer");
+              // Clear "From" if it's credit — can't transfer FROM credit card
               if (
                 accounts().find((a) => a.id === accountId())?.type === "credit"
               ) {
                 setAccountId(nonCreditOwnAccounts()[0]?.id ?? "");
               }
-              if (
-                accounts().find((a) => a.id === toAccountId())?.type ===
-                "credit"
-              ) {
-                setToAccountId("");
-              }
+              // Do NOT clear credit "To" — credit is a valid transfer destination
             }}
             class={cn(
               "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
@@ -440,9 +459,11 @@ export default function TransactionSheet(props: Props) {
 
         {/* To account (transfer mode only) */}
         <Show when={mode() === "transfer"}>
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">To</p>
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+            {isPayingCreditCard() ? "Pay to" : "To"}
+          </p>
           <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-            <For each={nonCreditAccounts().filter((a) => a.id !== accountId())}>
+            <For each={transferToAccounts()}>
               {(acc) => (
                 <button
                   type="button"
@@ -450,7 +471,9 @@ export default function TransactionSheet(props: Props) {
                   class={cn(
                     "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
                     toAccountId() === acc.id
-                      ? "bg-cyan-500 text-white"
+                      ? acc.type === "credit"
+                        ? "bg-purple-600 text-white"
+                        : "bg-cyan-500 text-white"
                       : "bg-white/5 text-gray-400 hover:bg-white/10",
                   )}
                 >
@@ -707,7 +730,9 @@ export default function TransactionSheet(props: Props) {
             : mode() === "expense"
               ? "Add Expense"
               : mode() === "transfer"
-                ? "Transfer"
+                ? isPayingCreditCard()
+                  ? "Pay Credit Card"
+                  : "Transfer"
                 : "Add Income"}
         </button>
       </div>

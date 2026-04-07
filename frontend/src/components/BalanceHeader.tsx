@@ -52,14 +52,32 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
   const accounts = () => accountsQuery.data ?? [];
   const transactions = () => transactionsQuery.data ?? [];
 
-  const balance = () => accounts().reduce((sum, a) => sum + a.balance, 0);
+  // Credit accounts track debt separately — exclude from spendable balance
+  const creditAccountIds = () =>
+    new Set(
+      accounts()
+        .filter((a) => a.type === "credit")
+        .map((a) => a.id),
+    );
+
+  const balance = () =>
+    accounts()
+      .filter((a) => a.type !== "credit")
+      .reduce((sum, a) => sum + a.balance, 0);
+
   const income = () =>
     transactions()
       .filter((t) => t.type === "income" && t.status !== "pending")
       .reduce((sum, t) => sum + t.amount, 0);
+
   const expenses = () =>
     transactions()
-      .filter((t) => t.type === "expense" && t.status !== "pending")
+      .filter(
+        (t) =>
+          t.type === "expense" &&
+          t.status !== "pending" &&
+          !creditAccountIds().has(t.account_id),
+      )
       .reduce((sum, t) => sum + t.amount, 0);
 
   const balanceLabel = () => {
