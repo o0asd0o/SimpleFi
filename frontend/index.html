@@ -6,7 +6,30 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <meta name="theme-color" content="#120F1C" />
+    <!-- Prevent flash of wrong theme before CSS loads -->
+    <script>
+      (function () {
+        var stored = localStorage.getItem("simplefi-theme");
+        var prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        var isDark =
+          stored === "dark" ||
+          (stored !== "light" && prefersDark);
+        if (isDark) document.documentElement.classList.add("dark");
+      })();
+    </script>
+    <!-- Theme color for browser chrome — adapts to system -->
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#F5F5F7"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#120F1C"
+    />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"

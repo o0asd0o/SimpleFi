@@ -84,7 +84,7 @@ export default function RecurringList() {
 
   return (
     <section aria-label="Recurring payments" class="px-6 pt-4">
-      <h2 class="text-lg font-bold text-white mb-4">Recurring Payments</h2>
+      <h2 class="text-lg font-bold text-fg mb-4">Recurring Payments</h2>
 
       <Show
         when={rules().length > 0}
@@ -92,7 +92,7 @@ export default function RecurringList() {
           <Show when={!rulesQuery.isLoading}>
             <div class="text-center py-20 px-6">
               <svg
-                class="w-10 h-10 text-gray-600 mx-auto mb-3"
+                class="w-10 h-10 text-fg-4 mx-auto mb-3"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -104,8 +104,8 @@ export default function RecurringList() {
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              <p class="text-white font-medium mb-1">No recurring payments</p>
-              <p class="text-gray-500 text-sm">
+              <p class="text-fg font-medium mb-1">No recurring payments</p>
+              <p class="text-fg-3 text-sm">
                 Set up repeating transactions when adding expenses
               </p>
             </div>
@@ -123,7 +123,7 @@ export default function RecurringList() {
               );
 
               return (
-                <li class="overflow-hidden rounded-xl bg-white/5">
+                <li class="overflow-hidden rounded-xl bg-surface shadow-sm dark:shadow-none">
                   <div
                     class="flex transition-transform duration-200 ease-out"
                     style={{
@@ -146,7 +146,7 @@ export default function RecurringList() {
                               {categoryIcon(rule.category_id)}
                             </span>
                           </Show>
-                          <span class="text-white font-medium text-sm truncate">
+                          <span class="text-fg font-medium text-sm truncate">
                             {rule.description ||
                               categoryName(rule.category_id) ||
                               rule.category ||
@@ -157,10 +157,10 @@ export default function RecurringList() {
                           class={cn(
                             "font-mono text-sm font-medium flex-shrink-0 ml-2",
                             rule.type === "expense"
-                              ? "text-purple-400"
+                              ? "text-amount-expense"
                               : rule.type === "transfer"
                                 ? "text-cyan-400"
-                                : "text-blue-400",
+                                : "text-amount-income",
                           )}
                         >
                           {rule.type === "expense"
@@ -172,7 +172,7 @@ export default function RecurringList() {
                         </span>
                       </div>
 
-                      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-3">
                         <span class="inline-flex items-center gap-1">
                           <span
                             class={cn(
@@ -193,7 +193,7 @@ export default function RecurringList() {
                         </Show>
                       </div>
 
-                      <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <div class="flex items-center gap-4 mt-2 text-xs text-fg-3">
                         <span>Next: {formatDate(rule.next_due)}</span>
                         <span>
                           {rule.end_date

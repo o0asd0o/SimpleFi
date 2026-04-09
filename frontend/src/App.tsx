@@ -1,6 +1,8 @@
-import { createSignal, lazy, Show, Suspense } from "solid-js";
+import { createSignal, lazy, onMount, Show, Suspense } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
 import { type AuthResponse, type Transaction } from "./lib/api";
+import { createThemeSignal, type ThemeMode } from "./lib/theme";
+import { setSheetOpen } from "./lib/sw-update";
 
 // Eager — always visible or always-present UI
 import BalanceHeader from "./components/BalanceHeader";
@@ -18,9 +20,15 @@ const LoginScreen = lazy(() => import("./components/LoginScreen"));
 const PartnershipView = lazy(() => import("./components/PartnershipView"));
 
 export default function App() {
+  const [theme, setTheme] = createThemeSignal();
+  const [showUpdateToast, setShowUpdateToast] = createSignal(false);
   const [token, setToken] = createSignal(localStorage.getItem("token"));
   const [passphrase, setPassphrase] = createSignal<string | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = createSignal(false);
+  const [isSheetOpen, setIsSheetOpenRaw] = createSignal(false);
+  const setIsSheetOpen = (v: boolean) => {
+    setIsSheetOpenRaw(v);
+    setSheetOpen(v);
+  };
   const [editingTx, setEditingTx] = createSignal<Transaction | null>(null);
   const [creditPayTarget, setCreditPayTarget] = createSignal<string | null>(
     null,
@@ -36,6 +44,15 @@ export default function App() {
     string | null
   >(null);
   const queryClient = useQueryClient();
+
+  // Post-update toast
+  onMount(() => {
+    if (sessionStorage.getItem("simplfi-updated")) {
+      sessionStorage.removeItem("simplfi-updated");
+      setShowUpdateToast(true);
+      setTimeout(() => setShowUpdateToast(false), 3000);
+    }
+  });
 
   const handleAuthSuccess = (response: AuthResponse) => {
     localStorage.setItem("token", response.token);
@@ -65,7 +82,7 @@ export default function App() {
         when={token()}
         fallback={<LoginScreen onAuthSuccess={handleAuthSuccess} />}
       >
-        <div class="min-h-screen bg-app-bg text-white max-w-md mx-auto relative pb-28">
+        <div class="min-h-screen bg-app-bg text-fg max-w-md mx-auto relative pb-28">
           <BalanceHeader
             onMenuOpen={() => setIsSidebarOpen(true)}
             onHomeClick={() => setActiveView("home")}
@@ -165,6 +182,8 @@ export default function App() {
               onNavigate={setActiveView}
               onLogout={handleLogout}
               onClose={() => setIsSidebarOpen(false)}
+              theme={theme()}
+              onThemeChange={(t: ThemeMode) => setTheme(t)}
             />
           </Show>
 
@@ -176,6 +195,13 @@ export default function App() {
             />
           </Show>
         </div>
+
+        {/* Update toast */}
+        <Show when={showUpdateToast()}>
+          <div class="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-purple-600/90 text-white text-sm font-medium shadow-lg backdrop-blur-sm z-50">
+            App updated
+          </div>
+        </Show>
       </Show>
     </Suspense>
   );

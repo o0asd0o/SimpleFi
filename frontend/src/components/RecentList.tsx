@@ -170,8 +170,8 @@ export default function RecentList(props: Props) {
           <Show when={!txQuery.isLoading}>
             <div class="text-center py-20 px-6">
               <p class="text-3xl mb-3">💸</p>
-              <p class="text-white font-medium mb-1">No transactions yet</p>
-              <p class="text-gray-500 text-sm">Tap + to log your first one</p>
+              <p class="text-fg font-medium mb-1">No transactions yet</p>
+              <p class="text-fg-3 text-sm">Tap + to log your first one</p>
             </div>
           </Show>
         }
@@ -191,11 +191,11 @@ export default function RecentList(props: Props) {
                 <li class="overflow-hidden relative">
                   {/* Skip/Stop confirmation overlay for recurring pending transactions */}
                   <Show when={deleteConfirmId() === tx.id}>
-                    <div class="absolute inset-0 bg-black/80 flex items-center justify-center gap-3 z-20 px-4">
+                    <div class="absolute inset-0 bg-overlay-heavy flex items-center justify-center gap-3 z-20 px-4">
                       <button
                         type="button"
                         onClick={() => setDeleteConfirmId(null)}
-                        class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center flex-shrink-0"
+                        class="w-8 h-8 rounded-full bg-surface-hover text-fg flex items-center justify-center flex-shrink-0"
                         aria-label="Cancel"
                       >
                         <svg
@@ -216,7 +216,7 @@ export default function RecentList(props: Props) {
                         type="button"
                         onClick={() => skipMut.mutate(tx.id)}
                         disabled={skipMut.isPending}
-                        class="flex-1 py-3 rounded-xl bg-white/10 text-white text-sm font-medium disabled:opacity-50"
+                        class="flex-1 py-3 rounded-xl bg-surface-hover text-fg text-sm font-medium disabled:opacity-50"
                       >
                         Skip this one
                       </button>
@@ -251,7 +251,7 @@ export default function RecentList(props: Props) {
                     {/* Row content */}
                     <div
                       class={cn(
-                        "flex items-center gap-4 px-6 py-4 border-b border-white/5 w-full flex-shrink-0",
+                        "flex items-center gap-4 px-6 py-4 border-b border-dim w-full flex-shrink-0",
                         tx.status === "pending" && "opacity-50",
                       )}
                     >
@@ -259,14 +259,14 @@ export default function RecentList(props: Props) {
                         class={cn(
                           "w-2 h-2 rounded-full flex-shrink-0",
                           tx.type === "expense"
-                            ? "bg-purple-500"
+                            ? "bg-amount-expense"
                             : tx.type === "transfer"
                               ? "bg-cyan-400"
-                              : "bg-blue-400",
+                              : "bg-amount-income",
                         )}
                       />
                       <div class="flex-1 min-w-0">
-                        <p class="text-white text-sm font-medium truncate">
+                        <p class="text-fg text-sm font-medium truncate">
                           <Show
                             when={
                               tx.type === "transfer" ||
@@ -285,7 +285,7 @@ export default function RecentList(props: Props) {
                             {accountName(tx.to_account_id ?? "")}
                           </Show>
                         </p>
-                        <p class="text-gray-500 text-xs mt-0.5 truncate">
+                        <p class="text-fg-3 text-xs mt-0.5 truncate">
                           <Show
                             when={tx.type === "transfer"}
                             fallback={
@@ -334,10 +334,10 @@ export default function RecentList(props: Props) {
                         class={cn(
                           "font-mono text-sm font-medium flex-shrink-0 max-w-[120px] text-right",
                           tx.type === "expense"
-                            ? "text-purple-400"
+                            ? "text-amount-expense"
                             : tx.type === "transfer"
                               ? "text-cyan-400"
-                              : "text-blue-400",
+                              : "text-amount-income",
                         )}
                       >
                         {tx.type === "expense"

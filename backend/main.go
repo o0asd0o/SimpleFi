@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,9 @@ import (
 	"simple-fi/handler"
 	"simple-fi/store"
 )
+
+// buildVersion is set at build time via -ldflags "-X main.buildVersion=..."
+var buildVersion = "dev"
 
 func main() {
 	loadEnv(".env")
@@ -37,6 +41,11 @@ func main() {
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
+	})
+	mux.HandleFunc("GET /api/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		json.NewEncoder(w).Encode(map[string]string{"version": buildVersion})
 	})
 	mux.HandleFunc("POST /api/auth/register", handler.HandleRegister(db, jwtSecret))
 	mux.HandleFunc("POST /api/auth/login", handler.HandleLogin(db, jwtSecret))
@@ -105,15 +114,31 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 // spaHandler serves static files from dir, falling back to index.html for SPA routes.
+// Sets cache headers: immutable for hashed assets, no-store for sw.js/index.html/manifest.
 func spaHandler(dir string) http.Handler {
 	fs := http.FileServer(http.Dir(dir))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		// Set cache headers based on file type
+		switch {
+		case strings.HasPrefix(path, "/assets/"):
+			// Vite hashed assets — cache forever
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		case path == "/sw.js" || path == "/" || path == "/index.html" || path == "/manifest.webmanifest":
+			// Must always revalidate — critical for iOS PWA updates
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		default:
+			w.Header().Set("Cache-Control", "no-cache")
+		}
+
 		// If the file exists on disk, serve it directly
-		if _, err := os.Stat(filepath.Join(dir, r.URL.Path)); err == nil {
+		if _, err := os.Stat(filepath.Join(dir, path)); err == nil {
 			fs.ServeHTTP(w, r)
 			return
 		}
 		// SPA fallback: serve index.html for client-side routing
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
 	})
 }

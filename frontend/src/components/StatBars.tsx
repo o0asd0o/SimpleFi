@@ -87,7 +87,7 @@ export default function StatBars(props: Props) {
       : (data()?.by_account?.length ?? 0) > 0;
 
   const bar = (pct: number, colorSet: string[], i: number) => (
-    <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+    <div class="h-1.5 bg-surface-hover rounded-full overflow-hidden">
       <div
         class={cn(
           "h-full rounded-full motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
@@ -111,7 +111,7 @@ export default function StatBars(props: Props) {
                 "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
                 period() === p.value
                   ? "bg-purple-600/20 text-purple-400 ring-1 ring-purple-500/30"
-                  : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white",
+                  : "bg-surface text-fg-2 hover:bg-surface-hover hover:text-fg",
               )}
             >
               {p.label}
@@ -129,8 +129,8 @@ export default function StatBars(props: Props) {
             class={cn(
               "flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors",
               filterUserId() === null
-                ? "bg-white/15 text-white"
-                : "text-gray-500 hover:text-gray-300",
+                ? "bg-surface-active text-fg"
+                : "text-fg-3 hover:text-fg-2",
             )}
           >
             Combined
@@ -141,8 +141,8 @@ export default function StatBars(props: Props) {
             class={cn(
               "flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors",
               filterUserId() === myId()
-                ? "bg-white/15 text-white"
-                : "text-gray-500 hover:text-gray-300",
+                ? "bg-surface-active text-fg"
+                : "text-fg-3 hover:text-fg-2",
             )}
           >
             Me
@@ -156,7 +156,7 @@ export default function StatBars(props: Props) {
                   "flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors",
                   filterUserId() === m.user_id
                     ? "bg-pink-500/20 text-pink-300"
-                    : "text-gray-500 hover:text-pink-300",
+                    : "text-fg-3 hover:text-pink-300",
                 )}
               >
                 {m.name}
@@ -170,7 +170,7 @@ export default function StatBars(props: Props) {
       <select
         value={breakdown()}
         onChange={(e) => setBreakdown(e.currentTarget.value as Breakdown)}
-        class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-6 cursor-pointer [&>option]:bg-[#1c1829] [&>option]:text-white"
+        class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-6 cursor-pointer"
       >
         <option value="category">By Category</option>
         <option value="account">By Account</option>
@@ -180,17 +180,17 @@ export default function StatBars(props: Props) {
         when={hasItems()}
         fallback={
           <div class="text-center py-16 px-6">
-            <p class="text-white font-medium mb-1">No expenses</p>
-            <p class="text-gray-500 text-sm">for this period</p>
+            <p class="text-fg font-medium mb-1">No expenses</p>
+            <p class="text-fg-3 text-sm">for this period</p>
           </div>
         }
       >
         {/* Total */}
         <div class="mb-8">
-          <p class="text-gray-500 text-xs uppercase tracking-wider mb-1">
+          <p class="text-fg-3 text-xs uppercase tracking-wider mb-1">
             Total Spent
           </p>
-          <p class="text-white text-2xl font-semibold tabular-nums">
+          <p class="text-fg text-2xl font-semibold tabular-nums">
             {fmt(data()?.total ?? 0)}
           </p>
         </div>
@@ -202,16 +202,16 @@ export default function StatBars(props: Props) {
               {(stat, i) => (
                 <li>
                   <div class="flex justify-between items-baseline mb-2">
-                    <span class="text-white text-sm font-medium">
+                    <span class="text-fg text-sm font-medium">
                       {stat.icon ? stat.icon + " " : ""}
                       {stat.category}
                     </span>
-                    <span class="text-gray-400 text-sm tabular-nums">
+                    <span class="text-fg-2 text-sm tabular-nums">
                       {fmt(stat.amount)}
                     </span>
                   </div>
                   {bar(stat.percentage, CATEGORY_COLORS, i())}
-                  <p class="text-right text-xs text-gray-600 mt-1 tabular-nums">
+                  <p class="text-right text-xs text-fg-4 mt-1 tabular-nums">
                     {stat.percentage.toFixed(1)}%
                   </p>
                 </li>
@@ -227,15 +227,15 @@ export default function StatBars(props: Props) {
               {(stat, i) => (
                 <li>
                   <div class="flex justify-between items-baseline mb-2">
-                    <span class="text-white text-sm font-medium">
+                    <span class="text-fg text-sm font-medium">
                       {stat.account_name}
                     </span>
-                    <span class="text-gray-400 text-sm tabular-nums">
+                    <span class="text-fg-2 text-sm tabular-nums">
                       {fmt(stat.amount)}
                     </span>
                   </div>
                   {bar(stat.percentage, ACCOUNT_COLORS, i())}
-                  <p class="text-right text-xs text-gray-600 mt-1 tabular-nums">
+                  <p class="text-right text-xs text-fg-4 mt-1 tabular-nums">
                     {stat.percentage.toFixed(1)}%
                   </p>
                 </li>

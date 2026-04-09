@@ -129,7 +129,7 @@ export default function ManageCategoriesModal(props: Props) {
   return (
     <>
       <div
-        class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
         onClick={props.onClose}
         aria-hidden="true"
       />
@@ -140,8 +140,8 @@ export default function ManageCategoriesModal(props: Props) {
         class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-w-md mx-auto max-h-[80vh] overflow-y-auto"
         style={{ right: `${scrollbarOffset}px` }}
       >
-        <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-        <h2 class="text-white font-semibold text-xl text-center mb-6">
+        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+        <h2 class="text-fg font-semibold text-xl text-center mb-6">
           Manage {props.categoryType === "income" ? "Income" : "Expense"}{" "}
           Categories
         </h2>
@@ -156,16 +156,15 @@ export default function ManageCategoriesModal(props: Props) {
               <Show
                 when={editingId() === cat.id}
                 fallback={
-                  <div class="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3">
+                  <div class="flex items-center gap-3 bg-surface rounded-xl px-4 py-3 shadow-sm dark:shadow-none">
                     <span class="text-lg flex-shrink-0">{cat.icon}</span>
-                    <p class="flex-1 min-w-0 text-sm font-medium text-white truncate">
+                    <p class="flex-1 min-w-0 text-sm font-medium text-fg truncate">
                       {cat.name}
                     </p>
                     <button
                       type="button"
                       onClick={() => startEdit(cat)}
-                      class="p-1.5 text-gray-500 hover:text-white transition-colors"
-                      aria-label={`Edit ${cat.name}`}
+                      class="p-1.5 text-fg-3 hover:text-fg transition-colors"
                     >
                       <svg
                         class="w-4 h-4"
@@ -185,7 +184,7 @@ export default function ManageCategoriesModal(props: Props) {
                       type="button"
                       onClick={() => handleDelete(cat.id)}
                       disabled={deleteMut.isPending}
-                      class="p-1.5 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
+                      class="p-1.5 text-fg-3 hover:text-red-400 transition-colors disabled:opacity-50"
                       aria-label={`Delete ${cat.name}`}
                     >
                       <svg
@@ -206,13 +205,13 @@ export default function ManageCategoriesModal(props: Props) {
                 }
               >
                 {/* Edit mode */}
-                <div class="bg-white/5 rounded-xl px-4 py-3 space-y-3">
+                <div class="bg-surface rounded-xl px-4 py-3 space-y-3">
                   <div class="flex gap-2">
                     <input
                       type="text"
                       value={editIcon()}
                       onInput={(e) => setEditIcon(e.currentTarget.value)}
-                      class="w-14 bg-white/5 rounded-lg px-3 py-2 text-white text-sm text-center outline-none focus:ring-1 focus:ring-purple-500"
+                      class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500"
                       placeholder="🔖"
                     />
                     <input
@@ -224,7 +223,7 @@ export default function ManageCategoriesModal(props: Props) {
                         if (e.key === "Enter") handleSave();
                         if (e.key === "Escape") setEditingId(null);
                       }}
-                      class="flex-1 bg-white/5 rounded-lg px-3 py-2 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500"
+                      class="flex-1 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
                       placeholder="Category name"
                     />
                   </div>
@@ -237,7 +236,7 @@ export default function ManageCategoriesModal(props: Props) {
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
-                      class="flex-1 py-2 rounded-lg bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition-colors"
+                      class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
                     >
                       Cancel
                     </button>
@@ -266,19 +265,19 @@ export default function ManageCategoriesModal(props: Props) {
                 setShowAdd(true);
                 setTimeout(() => addInputRef?.focus(), 0);
               }}
-              class="w-full mt-3 py-3 rounded-xl border border-dashed border-white/10 text-gray-500 text-sm font-medium hover:border-white/20 hover:text-gray-400 transition-colors"
+              class="w-full mt-3 py-3 rounded-xl border border-dashed border-dim text-fg-3 text-sm font-medium hover:border-dim-strong hover:text-fg-2 transition-colors"
             >
               + Add Category
             </button>
           }
         >
-          <div class="bg-white/5 rounded-xl px-4 py-3 mt-3 space-y-3">
+          <div class="bg-surface rounded-xl px-4 py-3 mt-3 space-y-3">
             <div class="flex gap-2">
               <input
                 type="text"
                 value={addIcon()}
                 onInput={(e) => setAddIcon(e.currentTarget.value)}
-                class="w-14 bg-white/5 rounded-lg px-3 py-2 text-white text-sm text-center outline-none focus:ring-1 focus:ring-purple-500"
+                class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500"
                 placeholder="🔖"
               />
               <input
@@ -290,7 +289,7 @@ export default function ManageCategoriesModal(props: Props) {
                   if (e.key === "Enter") handleAdd();
                   if (e.key === "Escape") setShowAdd(false);
                 }}
-                class="flex-1 bg-white/5 rounded-lg px-3 py-2 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500"
+                class="flex-1 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
                 placeholder="Category name"
               />
             </div>
@@ -301,7 +300,7 @@ export default function ManageCategoriesModal(props: Props) {
               <button
                 type="button"
                 onClick={() => setShowAdd(false)}
-                class="flex-1 py-2 rounded-lg bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition-colors"
+                class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
               >
                 Cancel
               </button>
@@ -320,7 +319,7 @@ export default function ManageCategoriesModal(props: Props) {
         <button
           type="button"
           onClick={props.onClose}
-          class="w-full mt-6 py-3 rounded-xl bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition-colors"
+          class="w-full mt-6 py-3 rounded-xl bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
         >
           Close
         </button>

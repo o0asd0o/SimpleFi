@@ -2,17 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Light mode (default) ─── */
+:root {
+  --bg: #f5f5f7;
+  --sheet: #ffffff;
+  --surface: #ffffff;
+  --surface-hv: #f3f4f6;
+  --surface-ac: #e5e7eb;
+  --fg: #111827;
+  --fg-2: #6b7280;
+  --fg-3: #9ca3af;
+  --fg-4: #9ca3af;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --overlay: rgba(0, 0, 0, 0.3);
+  --overlay-heavy: rgba(0, 0, 0, 0.5);
+  --handle: #d1d5db;
+  --amount-income: #16a34a;
+  --amount-expense: #dc2626;
+}
+
+/* ─── Dark mode ─── */
+.dark {
+  --bg: #120f1c;
+  --sheet: #1c1830;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-hv: rgba(255, 255, 255, 0.1);
+  --surface-ac: rgba(255, 255, 255, 0.15);
+  --fg: #ffffff;
+  --fg-2: #9ca3af;
+  --fg-3: #6b7280;
+  --fg-4: #4b5563;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --overlay-heavy: rgba(0, 0, 0, 0.8);
+  --handle: rgba(255, 255, 255, 0.2);
+  --amount-income: #60a5fa;
+  --amount-expense: #c084fc;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
-  background-color: #120f1c;
-  color: white;
+  background-color: var(--bg);
+  color: var(--fg);
   font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
   margin: 0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Date inputs — use correct color scheme per theme */
+input[type="date"] {
+  color-scheme: light;
+}
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Select options — theme-aware */
+select option {
+  background-color: var(--sheet);
+  color: var(--fg);
 }
 
 /* Hide scrollbar for category pills */

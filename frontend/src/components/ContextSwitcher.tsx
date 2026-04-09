@@ -41,8 +41,8 @@ export default function ContextSwitcher(props: Props) {
           class={cn(
             "flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors",
             props.activePartnershipId === null
-              ? "bg-white/15 text-white"
-              : "text-gray-500 hover:text-gray-300",
+              ? "bg-surface-active text-fg"
+              : "text-fg-3 hover:text-fg-2",
           )}
         >
           Personal
@@ -62,10 +62,10 @@ export default function ContextSwitcher(props: Props) {
                   p.type === "couple"
                     ? isActive()
                       ? "bg-pink-500/20 text-pink-300"
-                      : "text-gray-500 hover:text-pink-300"
+                      : "text-fg-3 hover:text-pink-300"
                     : isActive()
                       ? "bg-purple-600/20 text-purple-300"
-                      : "text-gray-500 hover:text-gray-300",
+                      : "text-fg-3 hover:text-fg-2",
                 )}
               >
                 <Show when={p.type === "couple"}>

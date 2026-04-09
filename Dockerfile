@@ -12,7 +12,7 @@ WORKDIR /build
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
-RUN CGO_ENABLED=0 go build -o /simplefi .
+RUN CGO_ENABLED=0 go build -ldflags "-X main.buildVersion=$(date +%s)" -o /simplefi .
 
 # ── Stage 3: Runtime ────────────────────────────────────────
 FROM alpine:3

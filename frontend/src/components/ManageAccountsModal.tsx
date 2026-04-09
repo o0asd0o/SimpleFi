@@ -145,7 +145,7 @@ export default function ManageAccountsModal(props: Props) {
   return (
     <>
       <div
-        class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
         onClick={props.onClose}
         aria-hidden="true"
       />
@@ -156,8 +156,8 @@ export default function ManageAccountsModal(props: Props) {
         class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-w-md mx-auto max-h-[80vh] overflow-y-auto"
         style={{ right: `${scrollbarOffset}px` }}
       >
-        <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-        <h2 class="text-white font-semibold text-xl text-center mb-6">
+        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+        <h2 class="text-fg font-semibold text-xl text-center mb-6">
           Manage Accounts
         </h2>
 
@@ -171,7 +171,7 @@ export default function ManageAccountsModal(props: Props) {
               <Show
                 when={editingId() === account.id}
                 fallback={
-                  <div class="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3">
+                  <div class="flex items-center gap-3 bg-surface rounded-xl px-4 py-3 shadow-sm dark:shadow-none">
                     <span
                       class={cn(
                         "w-2 h-2 rounded-full flex-shrink-0",
@@ -185,10 +185,10 @@ export default function ManageAccountsModal(props: Props) {
                       )}
                     />
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-white truncate">
+                      <p class="text-sm font-medium text-fg truncate">
                         {account.name}
                       </p>
-                      <p class="text-xs text-gray-500 capitalize">
+                      <p class="text-xs text-fg-3 capitalize">
                         {account.type}
                         {account.is_private && (
                           <span class="ml-1 text-amber-500">· private</span>
@@ -210,7 +210,7 @@ export default function ManageAccountsModal(props: Props) {
                           "p-1.5 transition-colors disabled:opacity-50",
                           account.is_private
                             ? "text-amber-400 hover:text-amber-300"
-                            : "text-gray-600 hover:text-amber-400",
+                            : "text-fg-4 hover:text-amber-400",
                         )}
                         aria-label={
                           account.is_private ? "Make public" : "Make private"
@@ -253,7 +253,7 @@ export default function ManageAccountsModal(props: Props) {
                     <button
                       type="button"
                       onClick={() => startEdit(account)}
-                      class="p-1.5 text-gray-500 hover:text-white transition-colors"
+                      class="p-1.5 text-fg-3 hover:text-fg transition-colors"
                       aria-label={`Edit ${account.name}`}
                     >
                       <svg
@@ -274,7 +274,7 @@ export default function ManageAccountsModal(props: Props) {
                       type="button"
                       onClick={() => handleDelete(account.id)}
                       disabled={deleteMutation.isPending}
-                      class="p-1.5 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
+                      class="p-1.5 text-fg-3 hover:text-red-400 transition-colors disabled:opacity-50"
                       aria-label={`Delete ${account.name}`}
                     >
                       <svg
@@ -295,7 +295,7 @@ export default function ManageAccountsModal(props: Props) {
                 }
               >
                 {/* Edit mode */}
-                <div class="bg-white/5 rounded-xl px-4 py-3 space-y-3">
+                <div class="bg-surface rounded-xl px-4 py-3 space-y-3">
                   <input
                     ref={editInputRef}
                     type="text"
@@ -305,7 +305,7 @@ export default function ManageAccountsModal(props: Props) {
                       if (e.key === "Enter") handleSave();
                       if (e.key === "Escape") setEditingId(null);
                     }}
-                    class="w-full bg-white/5 rounded-lg px-3 py-2 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500"
+                    class="w-full bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
                   />
                   <div class="flex gap-1.5">
                     <For each={ACCOUNT_TYPES}>
@@ -317,7 +317,7 @@ export default function ManageAccountsModal(props: Props) {
                             "flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors",
                             editType() === t
                               ? "bg-purple-600 text-white"
-                              : "bg-white/5 text-gray-400 hover:bg-white/10",
+                              : "bg-surface text-fg-2 hover:bg-surface-hover",
                           )}
                         >
                           {t}
@@ -334,7 +334,7 @@ export default function ManageAccountsModal(props: Props) {
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
-                      class="flex-1 py-2 rounded-lg bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition-colors"
+                      class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
                     >
                       Cancel
                     </button>
@@ -356,7 +356,7 @@ export default function ManageAccountsModal(props: Props) {
         <button
           type="button"
           onClick={props.onClose}
-          class="w-full mt-6 py-3 rounded-xl bg-white/5 text-gray-400 text-sm font-medium hover:bg-white/10 transition-colors"
+          class="w-full mt-6 py-3 rounded-xl bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
         >
           Close
         </button>

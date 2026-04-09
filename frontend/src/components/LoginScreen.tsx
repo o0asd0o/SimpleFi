@@ -65,13 +65,13 @@ export default function LoginScreen(props: LoginScreenProps) {
   };
 
   const inputClass =
-    "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors";
+    "w-full px-4 py-3 bg-surface border border-dim rounded-xl text-fg placeholder:text-fg-3 focus:outline-none focus:border-purple-500 transition-colors";
 
   return (
-    <div class="min-h-screen bg-app-bg text-white flex flex-col items-center justify-center px-6">
+    <div class="min-h-screen bg-app-bg text-fg flex flex-col items-center justify-center px-6">
       <div class="w-full max-w-sm">
         <h1 class="text-3xl font-bold text-center mb-2">SimpleFi</h1>
-        <p class="text-gray-500 text-center text-sm mb-8">
+        <p class="text-fg-3 text-center text-sm mb-8">
           {mode() === "login"
             ? "Sign in to your account"
             : mode() === "register"
@@ -169,7 +169,7 @@ export default function LoginScreen(props: LoginScreenProps) {
           </form>
         )}
 
-        <div class="mt-6 text-center text-sm text-gray-500 space-y-2">
+        <div class="mt-6 text-center text-sm text-fg-3 space-y-2">
           {mode() === "login" ? (
             <>
               <p>

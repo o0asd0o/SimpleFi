@@ -36,13 +36,13 @@ export default function AccountStrip(props: Props) {
     <div class="mb-4">
       <div class="flex items-center justify-between px-6 mb-2">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-medium tracking-widest text-gray-500 uppercase">
+          <span class="text-xs font-medium tracking-widest text-fg-3 uppercase">
             Accounts
           </span>
           <button
             type="button"
             onClick={() => setIsManageOpen(true)}
-            class="text-gray-500 hover:text-gray-300 transition-colors"
+            class="text-fg-3 hover:text-fg-2 transition-colors"
             aria-label="Manage accounts"
           >
             <svg
@@ -79,7 +79,7 @@ export default function AccountStrip(props: Props) {
           {(account) => (
             <div
               class={cn(
-                "flex-shrink-0 bg-white/5 rounded-xl px-4 py-2.5 cursor-pointer hover:bg-white/10 active:scale-95 transition-all",
+                "flex-shrink-0 bg-surface rounded-xl px-4 py-2.5 cursor-pointer hover:bg-surface-hover active:scale-95 transition-all shadow-sm dark:shadow-none",
               )}
               onClick={() => {
                 if (account.type === "credit") {
@@ -96,14 +96,12 @@ export default function AccountStrip(props: Props) {
                   {account.owner_name}
                 </p>
               </Show>
-              <p class="text-xs text-gray-500 capitalize">{account.type}</p>
-              <p class="text-sm font-medium text-white">{account.name}</p>
+              <p class="text-xs text-fg-3 capitalize">{account.type}</p>
+              <p class="text-sm font-medium text-fg">{account.name}</p>
               <p
                 class={cn(
                   "text-xs tabular-nums mt-0.5",
-                  account.type === "credit"
-                    ? "text-purple-400"
-                    : "text-gray-400",
+                  account.type === "credit" ? "text-purple-400" : "text-fg-2",
                 )}
               >
                 {account.type === "credit" ? "-" : ""}

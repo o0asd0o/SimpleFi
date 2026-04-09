@@ -57,7 +57,7 @@ export default function AccountModal(props: Props) {
   return (
     <>
       <div
-        class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
         onClick={props.onClose}
         aria-hidden="true"
       />
@@ -68,12 +68,12 @@ export default function AccountModal(props: Props) {
         class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-w-md mx-auto"
         style={{ right: `${scrollbarOffset}px` }}
       >
-        <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-        <h2 class="text-white font-semibold text-xl text-center mb-6">
+        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+        <h2 class="text-fg font-semibold text-xl text-center mb-6">
           New Account
         </h2>
 
-        <label class="text-xs text-gray-500 uppercase tracking-wider mb-2 block">
+        <label class="text-xs text-fg-3 uppercase tracking-wider mb-2 block">
           Account Name
         </label>
         <input
@@ -83,10 +83,10 @@ export default function AccountModal(props: Props) {
           value={name()}
           onInput={(e) => setName(e.currentTarget.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500 mb-4"
+          class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500 mb-4"
         />
 
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Type</p>
+        <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">Type</p>
         <div class="flex gap-2 mb-6">
           <For each={ACCOUNT_TYPES}>
             {(t) => (
@@ -97,7 +97,7 @@ export default function AccountModal(props: Props) {
                   "flex-1 py-2 rounded-xl text-sm font-medium capitalize transition-colors",
                   accountType() === t
                     ? "bg-purple-600 text-white"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10",
+                    : "bg-surface text-fg-2 hover:bg-surface-hover",
                 )}
               >
                 {t}
