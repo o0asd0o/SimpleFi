@@ -517,3 +517,82 @@ export async function setAccountPrivacy(
   });
   if (!res.ok) throw new Error("Failed to update account privacy");
 }
+
+// ─── Budgets ──────────────────────────────────────────────────────────────────
+
+export type BudgetCategoryProgress = {
+  category_id: string;
+  category_name: string;
+  icon: string;
+  limit: number;
+  spent: number;
+  percentage: number;
+};
+
+export type BudgetProgress = {
+  id: string;
+  user_id: string;
+  account_id: string;
+  name: string;
+  amount: number;
+  period_type: "month" | "year" | "custom";
+  start_date?: string;
+  end_date?: string;
+  created_at: string;
+  spent: number;
+  remaining: number;
+  percentage: number;
+  categories: BudgetCategoryProgress[];
+};
+
+export type CreateBudgetInput = {
+  name: string;
+  amount: number;
+  account_id?: string;
+  period_type: "month" | "year" | "custom";
+  start_date?: string;
+  end_date?: string;
+  categories?: { category_id: string; amount: number }[];
+};
+
+export async function fetchBudgets(
+  partnershipId?: string | null,
+): Promise<BudgetProgress[]> {
+  const params = new URLSearchParams();
+  if (partnershipId) params.set("partnership_id", partnershipId);
+  const res = await apiFetch(
+    `/api/budgets${params.toString() ? `?${params}` : ""}`,
+  );
+  if (!res.ok) throw new Error("Failed to fetch budgets");
+  return res.json();
+}
+
+export async function createBudget(
+  data: CreateBudgetInput,
+): Promise<BudgetProgress> {
+  const res = await apiFetch("/api/budgets", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create budget");
+  return res.json();
+}
+
+export async function updateBudget(
+  id: string,
+  data: CreateBudgetInput,
+): Promise<BudgetProgress> {
+  const res = await apiFetch(`/api/budgets/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update budget");
+  return res.json();
+}
+
+export async function deleteBudget(id: string): Promise<void> {
+  const res = await apiFetch(`/api/budgets/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete budget");
+}

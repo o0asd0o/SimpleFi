@@ -83,6 +83,10 @@ func main() {
 	protected.HandleFunc("GET /api/invitations", handler.HandleListInvitations(db))
 	protected.HandleFunc("GET /api/invitations/sent", handler.HandleListSentInvitations(db))
 	protected.HandleFunc("POST /api/invitations/{id}/respond", handler.HandleRespondToInvitation(db))
+	protected.HandleFunc("GET /api/budgets", handler.HandleListBudgets(db))
+	protected.HandleFunc("POST /api/budgets", handler.HandleCreateBudget(db))
+	protected.HandleFunc("PUT /api/budgets/{id}", handler.HandleUpdateBudget(db))
+	protected.HandleFunc("DELETE /api/budgets/{id}", handler.HandleDeleteBudget(db))
 	mux.Handle("/api/", auth.RequireAuth(jwtSecret, protected))
 
 	// Serve frontend static files when STATIC_DIR is set

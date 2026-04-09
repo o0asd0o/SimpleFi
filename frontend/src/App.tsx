@@ -1,6 +1,6 @@
 import { createSignal, lazy, onMount, Show, Suspense } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
-import { type AuthResponse, type Transaction } from "./lib/api";
+import { type AuthResponse, type BudgetProgress, type Transaction } from "./lib/api";
 import { createThemeSignal, type ThemeMode } from "./lib/theme";
 import { setSheetOpen } from "./lib/sw-update";
 
@@ -18,6 +18,8 @@ const StatBars = lazy(() => import("./components/StatBars"));
 const RecurringList = lazy(() => import("./components/RecurringList"));
 const LoginScreen = lazy(() => import("./components/LoginScreen"));
 const PartnershipView = lazy(() => import("./components/PartnershipView"));
+const BudgetView = lazy(() => import("./components/BudgetView"));
+const BudgetSheet = lazy(() => import("./components/BudgetSheet"));
 
 export default function App() {
   const [theme, setTheme] = createThemeSignal();
@@ -38,8 +40,10 @@ export default function App() {
   >(null);
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
   const [activeView, setActiveView] = createSignal<
-    "home" | "analytics" | "recurring" | "partnerships"
+    "home" | "analytics" | "budgets" | "recurring" | "partnerships"
   >("home");
+  const [isBudgetSheetOpen, setIsBudgetSheetOpen] = createSignal(false);
+  const [editingBudget, setEditingBudget] = createSignal<BudgetProgress | null>(null);
   const [activePartnershipId, setActivePartnershipId] = createSignal<
     string | null
   >(null);
@@ -87,6 +91,7 @@ export default function App() {
             onMenuOpen={() => setIsSidebarOpen(true)}
             onHomeClick={() => setActiveView("home")}
             activePartnershipId={activePartnershipId()}
+            onBudgetClick={() => setActiveView("budgets")}
           />
 
           {/* Context switcher — shown for all views when in a partnership */}
@@ -137,8 +142,22 @@ export default function App() {
             <PartnershipView />
           </Show>
 
-          {/* FAB — hidden on partnerships view */}
-          <Show when={activeView() !== "partnerships"}>
+          <Show when={activeView() === "budgets"}>
+            <BudgetView
+              activePartnershipId={activePartnershipId()}
+              onAddBudget={() => {
+                setEditingBudget(null);
+                setIsBudgetSheetOpen(true);
+              }}
+              onEditBudget={(bp) => {
+                setEditingBudget(bp);
+                setIsBudgetSheetOpen(true);
+              }}
+            />
+          </Show>
+
+          {/* FAB — hidden on partnerships and budgets views */}
+          <Show when={activeView() !== "partnerships" && activeView() !== "budgets"}>
             <button
               type="button"
               aria-label="Add transaction"
@@ -150,6 +169,18 @@ export default function App() {
             >
               +
             </button>
+          </Show>
+
+          {/* Budget sheet */}
+          <Show when={isBudgetSheetOpen()}>
+            <BudgetSheet
+              onClose={() => {
+                setIsBudgetSheetOpen(false);
+                setEditingBudget(null);
+              }}
+              editBudget={editingBudget() ?? undefined}
+              activePartnershipId={activePartnershipId()}
+            />
           </Show>
 
           {/* Transaction sheet */}

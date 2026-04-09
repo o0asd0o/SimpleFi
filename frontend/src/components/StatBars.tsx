@@ -2,9 +2,11 @@ import { createSignal, For, Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
 import {
   fetchAnalytics,
+  fetchBudgets,
   fetchMe,
   fetchPartnerships,
   type AnalyticsPeriod,
+  type BudgetProgress,
 } from "../lib/api";
 import { clsx as cn } from "clsx";
 
@@ -68,6 +70,25 @@ export default function StatBars(props: Props) {
     activePartnership()?.members.filter(
       (m) => m.user_id !== myId() && m.status === "active",
     ) ?? [];
+
+  const budgetsQuery = createQuery(() => ({
+    queryKey: ["budgets", props.activePartnershipId],
+    queryFn: () => fetchBudgets(props.activePartnershipId ?? undefined),
+  }));
+
+  // Map analytics period to a matching whole-balance budget
+  const matchingBudget = (): BudgetProgress | undefined => {
+    const budgets = budgetsQuery.data ?? [];
+    if (period() === "month") return budgets.find((b) => !b.account_id && b.period_type === "month");
+    if (period() === "ytd") return budgets.find((b) => !b.account_id && b.period_type === "year");
+    return undefined;
+  };
+
+  const categoryBudget = (categoryName: string): BudgetProgress | undefined => {
+    const mb = matchingBudget();
+    if (!mb) return undefined;
+    return mb.categories?.find((c) => c.category_name === categoryName) as unknown as BudgetProgress | undefined;
+  };
 
   const analyticsQuery = createQuery(() => ({
     queryKey: [
@@ -193,6 +214,40 @@ export default function StatBars(props: Props) {
           <p class="text-fg text-2xl font-semibold tabular-nums">
             {fmt(data()?.total ?? 0)}
           </p>
+          <Show when={matchingBudget()}>
+            {(budget) => (
+              <div class="mt-2">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-fg-3">{budget().name}</span>
+                  <span
+                    class={cn(
+                      "tabular-nums font-medium",
+                      budget().percentage >= 100
+                        ? "text-pink-400"
+                        : budget().percentage >= 80
+                          ? "text-amber-400"
+                          : "text-fg-3",
+                    )}
+                  >
+                    {fmt(budget().spent)} / {fmt(budget().amount)}
+                  </span>
+                </div>
+                <div class="h-1 bg-surface-hover rounded-full overflow-hidden">
+                  <div
+                    class={cn(
+                      "h-full rounded-full motion-safe:transition-all motion-safe:duration-700",
+                      budget().percentage >= 100
+                        ? "bg-pink-500"
+                        : budget().percentage >= 80
+                          ? "bg-amber-400"
+                          : "bg-purple-500",
+                    )}
+                    style={{ width: `${Math.min(budget().percentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </Show>
         </div>
 
         {/* By Category */}
@@ -206,8 +261,21 @@ export default function StatBars(props: Props) {
                       {stat.icon ? stat.icon + " " : ""}
                       {stat.category}
                     </span>
-                    <span class="text-fg-2 text-sm tabular-nums">
+                    <span
+                      class={cn(
+                        "text-sm tabular-nums",
+                        (() => {
+                          const cb = categoryBudget(stat.category);
+                          if (!cb) return "text-fg-2";
+                          const pct = cb.amount > 0 ? (stat.amount / cb.amount) * 100 : 0;
+                          return pct >= 100 ? "text-pink-400" : pct >= 80 ? "text-amber-400" : "text-fg-2";
+                        })()
+                      )}
+                    >
                       {fmt(stat.amount)}
+                      <Show when={categoryBudget(stat.category)}>
+                        {(cb) => <span class="text-fg-4"> / {fmt(cb().amount)}</span>}
+                      </Show>
                     </span>
                   </div>
                   {bar(stat.percentage, CATEGORY_COLORS, i())}

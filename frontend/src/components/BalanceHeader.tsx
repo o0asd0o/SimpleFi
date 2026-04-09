@@ -1,7 +1,10 @@
+import { Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
+import { clsx as cn } from "clsx";
 import {
   fetchAllTransactions,
   fetchAccounts,
+  fetchBudgets,
   fetchMe,
   fetchPartnerships,
 } from "../lib/api";
@@ -27,6 +30,7 @@ const fmtBalance = (n: number) => {
 type BalanceHeaderProps = {
   onMenuOpen: () => void;
   onHomeClick: () => void;
+  onBudgetClick?: () => void;
   activePartnershipId: string | null;
 };
 
@@ -43,6 +47,17 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
     queryKey: ["transactions-summary", props.activePartnershipId],
     queryFn: () => fetchAllTransactions(props.activePartnershipId),
   }));
+  const budgetsQuery = createQuery(() => ({
+    queryKey: ["budgets", props.activePartnershipId],
+    queryFn: () => fetchBudgets(props.activePartnershipId),
+  }));
+
+  // Primary budget: whole-balance monthly budget (account_id empty, period_type month)
+  const primaryBudget = () =>
+    (budgetsQuery.data ?? []).find(
+      (b) => !b.account_id && b.period_type === "month",
+    );
+
   const partnershipsQuery = createQuery(() => ({
     queryKey: ["partnerships"],
     queryFn: fetchPartnerships,
@@ -138,6 +153,58 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
       >
         {fmtBalance(balance())}
       </div>
+      {/* Budget progress bar — only shown when a whole-balance monthly budget exists */}
+      <Show when={primaryBudget()}>
+        {(bp) => {
+          const pct = Math.min(bp().percentage, 100);
+          const barColor =
+            bp().percentage >= 100
+              ? "bg-pink-500"
+              : bp().percentage >= 80
+                ? "bg-amber-400"
+                : "bg-purple-500";
+          const fmtShort = (n: number) =>
+            new Intl.NumberFormat("en-PH", {
+              style: "currency",
+              currency: "PHP",
+              notation: "compact",
+              maximumFractionDigits: 1,
+            }).format(n);
+          return (
+            <button
+              type="button"
+              onClick={() => props.onBudgetClick?.()}
+              class="w-full mb-4 px-2 group"
+              aria-label="View monthly budget progress"
+            >
+              <div class="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  class={cn(
+                    "h-full rounded-full transition-all duration-700 motion-reduce:transition-none",
+                    barColor,
+                  )}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <div class="flex justify-between items-center mt-1">
+                <span class="text-xs text-fg-3">{bp().name}</span>
+                <span
+                  class={cn(
+                    "text-xs",
+                    bp().percentage >= 100
+                      ? "text-pink-400"
+                      : bp().percentage >= 80
+                        ? "text-amber-400"
+                        : "text-fg-3",
+                  )}
+                >
+                  {fmtShort(bp().spent)} / {fmtShort(bp().amount)}
+                </span>
+              </div>
+            </button>
+          );
+        }}
+      </Show>
       <div class="flex justify-center gap-6 text-sm">
         <div class="flex items-center gap-2">
           <span class="w-1.5 h-1.5 rounded-full bg-amount-income inline-block" />
