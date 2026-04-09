@@ -1,7 +1,7 @@
-import { onCleanup, onMount, Show } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
 import { clsx as cn } from "clsx";
-import { fetchInvitations } from "../lib/api";
+import { exportTransactions, fetchInvitations } from "../lib/api";
 import { type ThemeMode } from "../lib/theme";
 
 type ViewType = "home" | "analytics" | "budgets" | "recurring" | "partnerships";
@@ -13,9 +13,11 @@ type Props = {
   onClose: () => void;
   theme: ThemeMode;
   onThemeChange: (t: ThemeMode) => void;
+  activePartnershipId?: string | null;
 };
 
 export default function SidebarMenu(props: Props) {
+  const [isExporting, setIsExporting] = createSignal(false);
   const scrollbarOffset = Math.max(
     window.innerWidth - document.documentElement.clientWidth,
     0,
@@ -68,7 +70,12 @@ export default function SidebarMenu(props: Props) {
         style={{ right: `${scrollbarOffset}px` }}
       >
         {/* Header */}
-        <div class="px-6 pt-10 pb-6 border-b border-dim">
+        <div
+          class="px-6 pb-6 border-b border-dim"
+          style={{
+            "padding-top": "calc(2.5rem + env(safe-area-inset-top, 0px))",
+          }}
+        >
           <h2 class="text-lg font-bold text-fg">SimpleFi</h2>
         </div>
 
@@ -207,7 +214,45 @@ export default function SidebarMenu(props: Props) {
         </div>
 
         {/* Theme toggle + Logout at bottom */}
-        <div class="px-3 pb-10 border-t border-dim pt-4 space-y-1">
+        <div
+          class="px-3 border-t border-dim pt-4 space-y-1"
+          style={{
+            "padding-bottom": "calc(2.5rem + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          {/* Export data */}
+          <button
+            type="button"
+            onClick={async () => {
+              setIsExporting(true);
+              try {
+                await exportTransactions(props.activePartnershipId);
+              } catch {
+                // silently fail — browser will show its own error
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+            disabled={isExporting()}
+            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-fg-2 hover:bg-surface hover:text-fg transition-colors disabled:opacity-50"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+            <Show when={isExporting()} fallback={<>Export Data</>}>
+              Exporting…
+            </Show>
+          </button>
           {/* Theme selector */}
           <div class="px-4 py-3">
             <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">Theme</p>

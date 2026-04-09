@@ -4,6 +4,12 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      spacing: {
+        "safe-t": "env(safe-area-inset-top, 0px)",
+        "safe-b": "env(safe-area-inset-bottom, 0px)",
+        "safe-l": "env(safe-area-inset-left, 0px)",
+        "safe-r": "env(safe-area-inset-right, 0px)",
+      },
       fontFamily: {
         sans: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
       },

@@ -2,8 +2,10 @@ package handler
 
 import (
 	"database/sql"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -380,5 +382,83 @@ func HandleGetAnalytics(db *sql.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(result)
+	}
+}
+
+// HandleExportTransactions streams all transactions as a CSV file download.
+func HandleExportTransactions(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := auth.UserIDFromContext(r.Context())
+		partnershipID := r.URL.Query().Get("partnership_id")
+
+		own, partner, err := model.GetVisibleAccountIDs(db, userID, partnershipID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+		allIDs := append(own, partner...)
+
+		rows, err := model.ExportAll(db, allIDs, userID)
+		if err != nil {
+			http.Error(w, "failed to export transactions", http.StatusInternalServerError)
+			return
+		}
+
+		filename := fmt.Sprintf("simplefi-transactions-%s.csv", time.Now().UTC().Format("2006-01-02"))
+		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+
+		cw := csv.NewWriter(w)
+		cw.Write([]string{"Date", "Type", "Category", "Description", "Amount", "Account", "To Account", "Status"})
+		for _, row := range rows {
+			cw.Write([]string{
+				row.CreatedAt.Format("2006-01-02"),
+				row.Type,
+				row.Category,
+				row.Description,
+				fmt.Sprintf("%.2f", row.Amount),
+				row.Account,
+				row.ToAccount,
+				row.Status,
+			})
+		}
+		cw.Flush()
+		if err := cw.Error(); err != nil {
+			log.Printf("csv write error: %v", err)
+		}
+	}
+}
+
+// HandleGetAnalyticsTrend returns daily/weekly expense totals for charting.
+func HandleGetAnalyticsTrend(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		period := r.URL.Query().Get("period")
+		if period == "" {
+			period = "30d"
+		}
+
+		userID := auth.UserIDFromContext(r.Context())
+		partnershipID := r.URL.Query().Get("partnership_id")
+		filterUserID := r.URL.Query().Get("user_id")
+
+		own, partner, err := model.GetVisibleAccountIDs(db, userID, partnershipID)
+		if err != nil {
+			http.Error(w, "failed to resolve accounts", http.StatusInternalServerError)
+			return
+		}
+		allIDs := append(own, partner...)
+
+		points, err := model.AnalyticsTrend(db, allIDs, userID, period, filterUserID)
+		if err != nil {
+			if errors.Is(err, model.ErrInvalidPeriod) {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			http.Error(w, "failed to get analytics trend", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(points)
 	}
 }

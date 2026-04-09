@@ -137,7 +137,7 @@ export default function ManageCategoriesModal(props: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Manage categories"
-        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-w-md mx-auto max-h-[80vh] overflow-y-auto"
+        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter max-w-md mx-auto max-h-[80vh] overflow-y-auto"
         style={{ right: `${scrollbarOffset}px` }}
       >
         <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />

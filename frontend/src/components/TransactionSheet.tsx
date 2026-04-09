@@ -371,7 +371,7 @@ export default function TransactionSheet(props: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={editing() ? "Edit transaction" : "Add transaction"}
-        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-h-[90vh] overflow-y-auto"
+        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter max-h-[90vh] overflow-y-auto"
         style={{ right: `${scrollbarOffset}px` }}
       >
         {/* Handle bar */}
@@ -598,7 +598,7 @@ export default function TransactionSheet(props: Props) {
             onClick={() => setShowRecurringModal(false)}
           />
           <div
-            class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter"
+            class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter"
             style={{ right: `${scrollbarOffset}px` }}
           >
             <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />

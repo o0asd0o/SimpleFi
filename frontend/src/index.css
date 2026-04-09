@@ -4,6 +4,11 @@
 
 /* ─── Light mode (default) ─── */
 :root {
+  /* Safe-area insets for edge-to-edge PWA (notch/home indicator support) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   --bg: #f5f5f7;
   --sheet: #eef0f3;
   --surface: #ffffff;
@@ -44,6 +49,13 @@
 
 * {
   box-sizing: border-box;
+}
+
+@layer utilities {
+  /* Safe-area-aware bottom padding for bottom sheets (replaces pb-10 = 2.5rem) */
+  .pb-safe-sheet {
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 body {

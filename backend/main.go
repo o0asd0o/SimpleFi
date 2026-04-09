@@ -61,6 +61,8 @@ func main() {
 	protected.HandleFunc("POST /api/transactions/{id}/skip", handler.HandleSkipTransaction(db))
 	protected.HandleFunc("GET /api/statistics", handler.HandleGetStatistics(db))
 	protected.HandleFunc("GET /api/analytics", handler.HandleGetAnalytics(db))
+	protected.HandleFunc("GET /api/analytics/trend", handler.HandleGetAnalyticsTrend(db))
+	protected.HandleFunc("GET /api/transactions/export", handler.HandleExportTransactions(db))
 	protected.HandleFunc("GET /api/recurring-rules", handler.HandleListRecurringRules(db))
 	protected.HandleFunc("POST /api/recurring-rules", handler.HandleCreateRecurringRule(db))
 	protected.HandleFunc("PUT /api/recurring-rules/{id}", handler.HandleUpdateRecurringRule(db))

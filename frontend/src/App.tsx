@@ -1,6 +1,10 @@
 import { createSignal, lazy, onMount, Show, Suspense } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
-import { type AuthResponse, type BudgetProgress, type Transaction } from "./lib/api";
+import {
+  type AuthResponse,
+  type BudgetProgress,
+  type Transaction,
+} from "./lib/api";
 import { createThemeSignal, type ThemeMode } from "./lib/theme";
 import { setSheetOpen } from "./lib/sw-update";
 
@@ -43,7 +47,9 @@ export default function App() {
     "home" | "analytics" | "budgets" | "recurring" | "partnerships"
   >("home");
   const [isBudgetSheetOpen, setIsBudgetSheetOpen] = createSignal(false);
-  const [editingBudget, setEditingBudget] = createSignal<BudgetProgress | null>(null);
+  const [editingBudget, setEditingBudget] = createSignal<BudgetProgress | null>(
+    null,
+  );
   const [activePartnershipId, setActivePartnershipId] = createSignal<
     string | null
   >(null);
@@ -86,7 +92,12 @@ export default function App() {
         when={token()}
         fallback={<LoginScreen onAuthSuccess={handleAuthSuccess} />}
       >
-        <div class="min-h-screen bg-app-bg text-fg max-w-md mx-auto relative pb-28">
+        <div
+          class="min-h-screen bg-app-bg text-fg max-w-md mx-auto relative"
+          style={{
+            "padding-bottom": "calc(7rem + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
           <BalanceHeader
             onMenuOpen={() => setIsSidebarOpen(true)}
             onHomeClick={() => setActiveView("home")}
@@ -157,7 +168,9 @@ export default function App() {
           </Show>
 
           {/* FAB — hidden on partnerships and budgets views */}
-          <Show when={activeView() !== "partnerships" && activeView() !== "budgets"}>
+          <Show
+            when={activeView() !== "partnerships" && activeView() !== "budgets"}
+          >
             <button
               type="button"
               aria-label="Add transaction"
@@ -165,7 +178,10 @@ export default function App() {
                 setEditingTx(null);
                 setIsSheetOpen(true);
               }}
-              class="fixed bottom-8 right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
+              class="fixed right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
+              style={{
+                bottom: "calc(2rem + env(safe-area-inset-bottom, 0px))",
+              }}
             >
               +
             </button>
@@ -215,6 +231,7 @@ export default function App() {
               onClose={() => setIsSidebarOpen(false)}
               theme={theme()}
               onThemeChange={(t: ThemeMode) => setTheme(t)}
+              activePartnershipId={activePartnershipId()}
             />
           </Show>
 

@@ -106,7 +106,11 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
   };
 
   return (
-    <header aria-label="Balance summary" class="px-6 pt-4 pb-6 text-center">
+    <header
+      aria-label="Balance summary"
+      class="px-6 pb-6 text-center"
+      style={{ "padding-top": "calc(1rem + env(safe-area-inset-top, 0px))" }}
+    >
       <div class="flex items-center justify-between mb-4">
         <button
           type="button"

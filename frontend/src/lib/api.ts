@@ -596,3 +596,41 @@ export async function deleteBudget(id: string): Promise<void> {
   const res = await apiFetch(`/api/budgets/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete budget");
 }
+export async function exportTransactions(
+  partnershipId?: string | null,
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (partnershipId) params.set("partnership_id", partnershipId);
+  const res = await apiFetch(
+    `/api/transactions/export${params.toString() ? `?${params}` : ""}`,
+  );
+  if (!res.ok) throw new Error("Export failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const today = new Date().toISOString().slice(0, 10);
+  a.download = `simplefi-transactions-${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export type TrendPoint = {
+  label: string;
+  amount: number;
+};
+
+export async function fetchAnalyticsTrend(
+  period: AnalyticsPeriod,
+  partnershipId?: string | null,
+  filterUserId?: string | null,
+): Promise<TrendPoint[]> {
+  const params = new URLSearchParams({ period });
+  if (partnershipId) params.set("partnership_id", partnershipId);
+  if (filterUserId) params.set("user_id", filterUserId);
+  const res = await apiFetch(`/api/analytics/trend?${params}`);
+  if (!res.ok) throw new Error("Failed to fetch analytics trend");
+  return res.json();
+}

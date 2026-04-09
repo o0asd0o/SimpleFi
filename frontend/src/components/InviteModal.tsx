@@ -39,7 +39,7 @@ export default function InviteModal(props: Props) {
       />
 
       {/* Sheet */}
-      <div class="fixed bottom-0 inset-x-0 z-50 bg-sheet-bg rounded-t-2xl p-6 pb-10 max-w-md mx-auto">
+      <div class="fixed bottom-0 inset-x-0 z-50 bg-sheet-bg rounded-t-2xl p-6 pb-safe-sheet max-w-md mx-auto">
         <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
 
         <h2 class="text-base font-semibold text-fg mb-4">Invite someone</h2>
