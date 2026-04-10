@@ -165,7 +165,7 @@ export default function StatBars(props: Props) {
               class={cn(
                 "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
                 period() === p.value
-                  ? "bg-purple-600/20 text-purple-400 ring-1 ring-purple-500/30"
+                  ? "bg-purple-600/20 text-purple-700 dark:text-purple-400 ring-1 ring-purple-500/30"
                   : "bg-surface text-fg-2 hover:bg-surface-hover hover:text-fg",
               )}
             >
@@ -226,7 +226,7 @@ export default function StatBars(props: Props) {
         <select
           value={breakdown()}
           onChange={(e) => setBreakdown(e.currentTarget.value as Breakdown)}
-          class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+          class="w-full appearance-none bg-surface rounded-xl px-4 py-3 min-h-[44px] text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
         >
           <option value="category">By Category</option>
           <option value="account">By Account</option>

@@ -40,7 +40,13 @@ func HandleListTransactions(db *sql.DB) http.HandlerFunc {
 		}
 		cursor := r.URL.Query().Get("cursor")
 
-		page, err := model.List(db, allIDs, userID, limit, cursor)
+		filters := model.ListFilters{
+			AccountID:  r.URL.Query().Get("account_id"),
+			CategoryID: r.URL.Query().Get("category_id"),
+			SortDir:    r.URL.Query().Get("sort"),
+		}
+
+		page, err := model.List(db, allIDs, userID, limit, cursor, filters)
 		if err != nil {
 			http.Error(w, "failed to list transactions", http.StatusInternalServerError)
 			return

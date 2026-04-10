@@ -87,7 +87,7 @@ export default function SidebarMenu(props: Props) {
             class={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
               props.activeView === "home"
-                ? "bg-purple-600/20 text-purple-400"
+                ? "bg-purple-600/20 text-purple-700 dark:text-purple-400"
                 : "text-fg-2 hover:bg-surface hover:text-fg",
             )}
           >
@@ -112,7 +112,7 @@ export default function SidebarMenu(props: Props) {
             class={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
               props.activeView === "analytics"
-                ? "bg-purple-600/20 text-purple-400"
+                ? "bg-purple-600/20 text-purple-700 dark:text-purple-400"
                 : "text-fg-2 hover:bg-surface hover:text-fg",
             )}
           >
@@ -137,7 +137,7 @@ export default function SidebarMenu(props: Props) {
             class={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
               props.activeView === "budgets"
-                ? "bg-purple-600/20 text-purple-400"
+                ? "bg-purple-600/20 text-purple-700 dark:text-purple-400"
                 : "text-fg-2 hover:bg-surface hover:text-fg",
             )}
           >
@@ -162,7 +162,7 @@ export default function SidebarMenu(props: Props) {
             class={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
               props.activeView === "recurring"
-                ? "bg-purple-600/20 text-purple-400"
+                ? "bg-purple-600/20 text-purple-700 dark:text-purple-400"
                 : "text-fg-2 hover:bg-surface hover:text-fg",
             )}
           >
@@ -187,7 +187,7 @@ export default function SidebarMenu(props: Props) {
             class={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
               props.activeView === "partnerships"
-                ? "bg-purple-600/20 text-purple-400"
+                ? "bg-purple-600/20 text-purple-700 dark:text-purple-400"
                 : "text-fg-2 hover:bg-surface hover:text-fg",
             )}
           >

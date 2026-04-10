@@ -80,6 +80,7 @@ export type CreateAccountInput = {
   name: string;
   type: "cash" | "credit" | "debit" | "savings";
   is_private?: boolean;
+  initial_balance?: number;
 };
 
 export type User = {
@@ -156,10 +157,16 @@ export async function fetchTransactions(
   limit = 15,
   cursor?: string,
   partnershipId?: string | null,
+  accountId?: string | null,
+  categoryId?: string | null,
+  sort?: "asc" | "desc",
 ): Promise<TransactionPage> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (cursor) params.set("cursor", cursor);
   if (partnershipId) params.set("partnership_id", partnershipId);
+  if (accountId) params.set("account_id", accountId);
+  if (categoryId) params.set("category_id", categoryId);
+  if (sort) params.set("sort", sort);
   const res = await apiFetch(`/api/transactions?${params}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");
   return res.json();

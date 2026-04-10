@@ -86,10 +86,20 @@ export default function BudgetView(props: Props) {
         <button
           type="button"
           onClick={props.onAddBudget}
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-400 text-sm font-medium hover:bg-purple-600/30 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 text-purple-700 dark:text-purple-400 text-sm font-medium hover:bg-purple-600/30 transition-colors"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 4v16m8-8H4"
+            />
           </svg>
           New Budget
         </button>
@@ -103,7 +113,9 @@ export default function BudgetView(props: Props) {
       </Show>
 
       {/* Empty state */}
-      <Show when={!budgetsQuery.isPending && (budgetsQuery.data?.length ?? 0) === 0}>
+      <Show
+        when={!budgetsQuery.isPending && (budgetsQuery.data?.length ?? 0) === 0}
+      >
         <div class="flex flex-col items-center justify-center py-16 text-center gap-3">
           <div class="text-4xl">🎯</div>
           <p class="text-fg font-medium">No budgets yet</p>
@@ -150,7 +162,8 @@ export default function BudgetView(props: Props) {
                         {periodLabel(bp)}
                         {" · "}
                         {bp.account_id
-                          ? (accountMap().get(bp.account_id) ?? "Unknown Account")
+                          ? (accountMap().get(bp.account_id) ??
+                            "Unknown Account")
                           : "All Accounts"}
                       </p>
                     </div>
@@ -160,8 +173,18 @@ export default function BudgetView(props: Props) {
                       class="flex-shrink-0 p-1.5 rounded-lg text-fg-3 hover:text-fg hover:bg-white/5 transition-colors"
                       aria-label="Edit budget"
                     >
-                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -170,7 +193,10 @@ export default function BudgetView(props: Props) {
                   <div>
                     <div class="h-2 rounded-full bg-white/10 overflow-hidden">
                       <div
-                        class={cn("h-full rounded-full transition-all duration-500 motion-reduce:transition-none", barColor)}
+                        class={cn(
+                          "h-full rounded-full transition-all duration-500 motion-reduce:transition-none",
+                          barColor,
+                        )}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -178,7 +204,16 @@ export default function BudgetView(props: Props) {
                       <span class="text-xs text-fg-2">
                         {fmtCurrency(bp.spent)} spent
                       </span>
-                      <span class={cn("text-xs font-medium", bp.percentage >= 100 ? "text-pink-400" : bp.percentage >= 80 ? "text-amber-400" : "text-fg-2")}>
+                      <span
+                        class={cn(
+                          "text-xs font-medium",
+                          bp.percentage >= 100
+                            ? "text-pink-400"
+                            : bp.percentage >= 80
+                              ? "text-amber-400"
+                              : "text-fg-2",
+                        )}
+                      >
                         {bp.percentage.toFixed(0)}% of {fmtCurrency(bp.amount)}
                       </span>
                     </div>
@@ -191,12 +226,25 @@ export default function BudgetView(props: Props) {
                       onClick={() => setExpandedId(isExpanded() ? null : bp.id)}
                       class="w-full flex items-center justify-between text-xs text-fg-3 hover:text-fg-2 transition-colors pt-1 border-t border-dim"
                     >
-                      <span>{bp.categories.length} category limit{bp.categories.length !== 1 ? "s" : ""}</span>
+                      <span>
+                        {bp.categories.length} category limit
+                        {bp.categories.length !== 1 ? "s" : ""}
+                      </span>
                       <svg
-                        class={cn("w-4 h-4 transition-transform", isExpanded() ? "rotate-180" : "")}
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                        class={cn(
+                          "w-4 h-4 transition-transform",
+                          isExpanded() ? "rotate-180" : "",
+                        )}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
                       >
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M19 9l-7 7-7-7"
+                        />
                       </svg>
                     </button>
 
@@ -212,13 +260,25 @@ export default function BudgetView(props: Props) {
                                   <span class="text-fg-2">
                                     {cat.icon} {cat.category_name}
                                   </span>
-                                  <span class={cn(cat.percentage >= 100 ? "text-pink-400" : cat.percentage >= 80 ? "text-amber-400" : "text-fg-3")}>
-                                    {fmtCurrency(cat.spent)} / {fmtCurrency(cat.limit)}
+                                  <span
+                                    class={cn(
+                                      cat.percentage >= 100
+                                        ? "text-pink-400"
+                                        : cat.percentage >= 80
+                                          ? "text-amber-400"
+                                          : "text-fg-3",
+                                    )}
+                                  >
+                                    {fmtCurrency(cat.spent)} /{" "}
+                                    {fmtCurrency(cat.limit)}
                                   </span>
                                 </div>
                                 <div class="h-1 rounded-full bg-white/10 overflow-hidden">
                                   <div
-                                    class={cn("h-full rounded-full transition-all duration-500 motion-reduce:transition-none", catColor)}
+                                    class={cn(
+                                      "h-full rounded-full transition-all duration-500 motion-reduce:transition-none",
+                                      catColor,
+                                    )}
                                     style={{ width: `${catPct}%` }}
                                   />
                                 </div>
