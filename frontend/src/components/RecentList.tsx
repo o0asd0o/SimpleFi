@@ -18,6 +18,7 @@ import {
 } from "../lib/api";
 import { createSwipeHandlers } from "../lib/swipe";
 import { clsx as cn } from "clsx";
+import TransactionFilters from "./TransactionFilters";
 
 const PAGE_SIZE = 15;
 
@@ -49,6 +50,16 @@ export default function RecentList(props: Props) {
   const [deleteConfirmId, setDeleteConfirmId] = createSignal<string | null>(
     null,
   );
+  const [filterAccountId, setFilterAccountId] = createSignal<string | null>(
+    null,
+  );
+  const [filterCategoryId, setFilterCategoryId] = createSignal<string | null>(
+    null,
+  );
+  const [sortDir, setSortDir] = createSignal<"desc" | "asc">("desc");
+  const [activeDropdown, setActiveDropdown] = createSignal<
+    "account" | "category" | null
+  >(null);
   const queryClient = useQueryClient();
 
   const meQuery = createQuery(() => ({
@@ -68,9 +79,22 @@ export default function RecentList(props: Props) {
   };
 
   const txQuery = createInfiniteQuery(() => ({
-    queryKey: ["transactions", props.activePartnershipId],
+    queryKey: [
+      "transactions",
+      props.activePartnershipId,
+      filterAccountId(),
+      filterCategoryId(),
+      sortDir(),
+    ],
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
-      fetchTransactions(PAGE_SIZE, pageParam, props.activePartnershipId),
+      fetchTransactions(
+        PAGE_SIZE,
+        pageParam,
+        props.activePartnershipId,
+        filterAccountId(),
+        filterCategoryId(),
+        sortDir(),
+      ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
   }));
@@ -164,14 +188,44 @@ export default function RecentList(props: Props) {
 
   return (
     <section aria-label="Recent transactions">
+      <TransactionFilters
+        activePartnershipId={props.activePartnershipId}
+        filterAccountId={filterAccountId()}
+        filterCategoryId={filterCategoryId()}
+        sortDir={sortDir()}
+        activeDropdown={activeDropdown()}
+        onAccountFilter={setFilterAccountId}
+        onCategoryFilter={setFilterCategoryId}
+        onSortToggle={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+        onDropdownToggle={(d) =>
+          setActiveDropdown((cur) => (cur === d ? null : d))
+        }
+        onDropdownClose={() => setActiveDropdown(null)}
+        onClearFilters={() => {
+          setFilterAccountId(null);
+          setFilterCategoryId(null);
+        }}
+      />
+
       <Show
         when={transactions().length > 0}
         fallback={
           <Show when={!txQuery.isLoading}>
             <div class="text-center py-20 px-6">
-              <p class="text-3xl mb-3">💸</p>
-              <p class="text-fg font-medium mb-1">No transactions yet</p>
-              <p class="text-fg-3 text-sm">Tap + to log your first one</p>
+              <Show
+                when={filterAccountId() || filterCategoryId()}
+                fallback={
+                  <>
+                    <p class="text-3xl mb-3">💸</p>
+                    <p class="text-fg font-medium mb-1">No transactions yet</p>
+                    <p class="text-fg-3 text-sm">Tap + to log your first one</p>
+                  </>
+                }
+              >
+                <p class="text-3xl mb-3">🔍</p>
+                <p class="text-fg font-medium mb-1">No matching transactions</p>
+                <p class="text-fg-3 text-sm">Try adjusting your filters</p>
+              </Show>
             </div>
           </Show>
         }

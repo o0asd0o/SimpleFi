@@ -165,7 +165,7 @@ export default function StatBars(props: Props) {
               class={cn(
                 "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
                 period() === p.value
-                  ? "bg-purple-600/20 text-purple-400 ring-1 ring-purple-500/30"
+                  ? "bg-purple-600/20 text-purple-700 dark:text-purple-400 ring-1 ring-purple-500/30"
                   : "bg-surface text-fg-2 hover:bg-surface-hover hover:text-fg",
               )}
             >

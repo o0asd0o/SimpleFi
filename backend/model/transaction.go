@@ -54,18 +54,41 @@ type TransactionPage struct {
 	NextCursor string        `json:"next_cursor,omitempty"`
 }
 
-func List(db *sql.DB, accountIDs []string, callerUserID string, limit int, cursor string) (TransactionPage, error) {
+type ListFilters struct {
+	AccountID  string // filter to a specific account (account_id or to_account_id)
+	CategoryID string // filter to a specific category
+	SortDir    string // "asc" or "desc" (default "desc")
+}
+
+func List(db *sql.DB, accountIDs []string, callerUserID string, limit int, cursor string, filters ListFilters) (TransactionPage, error) {
 	if limit <= 0 {
 		limit = 15
 	}
+	if filters.SortDir != "asc" {
+		filters.SortDir = "desc"
+	}
 
 	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
+
+	// Extra filter conditions
+	if filters.AccountID != "" {
+		whereClause += " AND (t.account_id = ? OR t.to_account_id = ?)"
+		whereArgs = append(whereArgs, filters.AccountID, filters.AccountID)
+	}
+	if filters.CategoryID != "" {
+		whereClause += " AND t.category_id = ?"
+		whereArgs = append(whereArgs, filters.CategoryID)
+	}
 
 	var rows *sql.Rows
 	var err error
 
 	if cursor == "" {
 		args := append(whereArgs, limit+1)
+		order := "DESC"
+		if filters.SortDir == "asc" {
+			order = "ASC"
+		}
 		rows, err = db.Query(
 			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
 			        COALESCE(t.description, ''),
@@ -76,11 +99,17 @@ func List(db *sql.DB, accountIDs []string, callerUserID string, limit int, curso
 			 LEFT JOIN categories c ON c.id = t.category_id
 			 LEFT JOIN users u ON u.id = t.user_id
 			 WHERE `+whereClause+`
-		 ORDER BY (CASE WHEN COALESCE(t.status,'confirmed') = 'pending' THEN 0 ELSE 1 END), t.created_at DESC
+		 ORDER BY (CASE WHEN COALESCE(t.status,'confirmed') = 'pending' THEN 0 ELSE 1 END), t.created_at `+order+`
 		 LIMIT ?`,
 			args...,
 		)
 	} else {
+		var cursorCmp string
+		if filters.SortDir == "asc" {
+			cursorCmp = ">"
+		} else {
+			cursorCmp = "<"
+		}
 		args := append(whereArgs, cursor, limit+1)
 		rows, err = db.Query(
 			`SELECT t.id, t.amount, t.type, COALESCE(c.name, t.category), COALESCE(t.category_id, ''),
@@ -91,8 +120,8 @@ func List(db *sql.DB, accountIDs []string, callerUserID string, limit int, curso
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
 			 LEFT JOIN users u ON u.id = t.user_id
-			 WHERE `+whereClause+` AND t.created_at < ? AND COALESCE(t.status,'confirmed') != 'pending'
-		 ORDER BY t.created_at DESC LIMIT ?`,
+			 WHERE `+whereClause+` AND t.created_at `+cursorCmp+` ? AND COALESCE(t.status,'confirmed') != 'pending'
+		 ORDER BY t.created_at `+filters.SortDir+` LIMIT ?`,
 			args...,
 		)
 	}

@@ -177,7 +177,7 @@ export default function RecurringList() {
                           <span
                             class={cn(
                               "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide",
-                              "bg-purple-600/20 text-purple-400",
+                              "bg-purple-600/20 text-purple-700 dark:text-purple-400",
                             )}
                           >
                             {formatFrequency(rule.frequency)}
