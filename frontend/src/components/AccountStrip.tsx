@@ -1,6 +1,11 @@
 import { createSignal, For, Show } from "solid-js";
 import { createQuery } from "@tanstack/solid-query";
-import { fetchAccounts, fetchMe } from "../lib/api";
+import {
+  fetchAccounts,
+  fetchBudgets,
+  fetchMe,
+  type BudgetProgress,
+} from "../lib/api";
 import { clsx as cn } from "clsx";
 import AccountModal from "./AccountModal";
 import ManageAccountsModal from "./ManageAccountsModal";
@@ -14,6 +19,7 @@ type Props = {
   activePartnershipId: string | null;
   onPayCredit: (accountId: string) => void;
   onAccountTap: (accountId: string) => void;
+  onSetAccountBudget: (accountId: string) => void;
 };
 
 export default function AccountStrip(props: Props) {
@@ -30,19 +36,27 @@ export default function AccountStrip(props: Props) {
     queryFn: () => fetchAccounts(props.activePartnershipId),
   }));
 
+  const budgetsQuery = createQuery(() => ({
+    queryKey: ["budgets", props.activePartnershipId],
+    queryFn: () => fetchBudgets(props.activePartnershipId ?? undefined),
+  }));
+
+  const accountBudget = (accountId: string): BudgetProgress | undefined =>
+    (budgetsQuery.data ?? []).find((b) => b.account_id === accountId);
+
   const myId = () => meQuery.data?.id ?? "";
 
   return (
     <div class="mb-4">
       <div class="flex items-center justify-between px-6 mb-2">
         <div class="flex items-center gap-2">
-          <span class="text-xs font-medium tracking-widest text-gray-500 uppercase">
+          <span class="text-xs font-medium tracking-widest text-fg-3 uppercase">
             Accounts
           </span>
           <button
             type="button"
             onClick={() => setIsManageOpen(true)}
-            class="text-gray-500 hover:text-gray-300 transition-colors"
+            class="text-fg-3 hover:text-fg-2 transition-colors"
             aria-label="Manage accounts"
           >
             <svg
@@ -79,7 +93,7 @@ export default function AccountStrip(props: Props) {
           {(account) => (
             <div
               class={cn(
-                "flex-shrink-0 bg-white/5 rounded-xl px-4 py-2.5 cursor-pointer hover:bg-white/10 active:scale-95 transition-all",
+                "flex-shrink-0 w-36 bg-surface rounded-xl px-4 py-2.5 cursor-pointer hover:bg-surface-hover active:scale-95 transition-all shadow-sm dark:shadow-none",
               )}
               onClick={() => {
                 if (account.type === "credit") {
@@ -96,19 +110,64 @@ export default function AccountStrip(props: Props) {
                   {account.owner_name}
                 </p>
               </Show>
-              <p class="text-xs text-gray-500 capitalize">{account.type}</p>
-              <p class="text-sm font-medium text-white">{account.name}</p>
+              <p class="text-xs text-fg-3 capitalize">{account.type}</p>
+              <p class="text-sm font-medium text-fg truncate">{account.name}</p>
               <p
                 class={cn(
                   "text-xs tabular-nums mt-0.5",
-                  account.type === "credit"
-                    ? "text-purple-400"
-                    : "text-gray-400",
+                  account.type === "credit" ? "text-purple-400" : "text-fg-2",
                 )}
               >
                 {account.type === "credit" ? "-" : ""}
                 {fmt(Math.abs(account.balance))}
               </p>
+              {/* Per-account budget bar */}
+              <Show when={accountBudget(account.id)}>
+                {(budget) => {
+                  const pct = Math.min(budget().percentage, 100);
+                  return (
+                    <div class="mt-2.5">
+                      <div class="h-1 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          class={cn(
+                            "h-full rounded-full transition-all duration-700 motion-reduce:transition-none",
+                            budget().percentage >= 100
+                              ? "bg-pink-500"
+                              : budget().percentage >= 80
+                                ? "bg-amber-400"
+                                : "bg-purple-500",
+                          )}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <p
+                        class={cn(
+                          "text-right text-xs tabular-nums mt-0.5",
+                          budget().percentage >= 100
+                            ? "text-pink-400"
+                            : budget().percentage >= 80
+                              ? "text-amber-400"
+                              : "text-fg-4",
+                        )}
+                      >
+                        {budget().percentage.toFixed(0)}%
+                      </p>
+                    </div>
+                  );
+                }}
+              </Show>
+              <Show when={!accountBudget(account.id)}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onSetAccountBudget(account.id);
+                  }}
+                  class="mt-2.5 w-full text-left text-xs text-fg-4 hover:text-purple-400 transition-colors"
+                >
+                  + set budget
+                </button>
+              </Show>
             </div>
           )}
         </For>

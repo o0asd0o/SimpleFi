@@ -176,6 +176,27 @@ func migrate(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_pi_to_user ON partnership_invitations(to_user_id, status)`,
 		`CREATE INDEX IF NOT EXISTS idx_pi_partnership ON partnership_invitations(partnership_id)`,
+		// Budget tables
+		`CREATE TABLE IF NOT EXISTS budgets (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			account_id TEXT,
+			name TEXT NOT NULL,
+			amount REAL NOT NULL,
+			period_type TEXT NOT NULL DEFAULT 'month',
+			start_date TEXT,
+			end_date TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_budgets_user ON budgets(user_id)`,
+		`CREATE TABLE IF NOT EXISTS budget_categories (
+			id TEXT PRIMARY KEY,
+			budget_id TEXT NOT NULL,
+			category_id TEXT NOT NULL,
+			amount REAL NOT NULL,
+			UNIQUE(budget_id, category_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_budget_categories_budget ON budget_categories(budget_id)`,
 	}
 	for _, stmt := range partnershipStmts {
 		if _, err := db.Exec(stmt); err != nil {

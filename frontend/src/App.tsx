@@ -1,6 +1,12 @@
-import { createSignal, lazy, Show, Suspense } from "solid-js";
+import { createSignal, lazy, onMount, Show, Suspense } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
-import { type AuthResponse, type Transaction } from "./lib/api";
+import {
+  type AuthResponse,
+  type BudgetProgress,
+  type Transaction,
+} from "./lib/api";
+import { createThemeSignal, type ThemeMode } from "./lib/theme";
+import { setSheetOpen } from "./lib/sw-update";
 
 // Eager — always visible or always-present UI
 import BalanceHeader from "./components/BalanceHeader";
@@ -16,11 +22,19 @@ const StatBars = lazy(() => import("./components/StatBars"));
 const RecurringList = lazy(() => import("./components/RecurringList"));
 const LoginScreen = lazy(() => import("./components/LoginScreen"));
 const PartnershipView = lazy(() => import("./components/PartnershipView"));
+const BudgetView = lazy(() => import("./components/BudgetView"));
+const BudgetSheet = lazy(() => import("./components/BudgetSheet"));
 
 export default function App() {
+  const [theme, setTheme] = createThemeSignal();
+  const [showUpdateToast, setShowUpdateToast] = createSignal(false);
   const [token, setToken] = createSignal(localStorage.getItem("token"));
   const [passphrase, setPassphrase] = createSignal<string | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = createSignal(false);
+  const [isSheetOpen, setIsSheetOpenRaw] = createSignal(false);
+  const setIsSheetOpen = (v: boolean) => {
+    setIsSheetOpenRaw(v);
+    setSheetOpen(v);
+  };
   const [editingTx, setEditingTx] = createSignal<Transaction | null>(null);
   const [creditPayTarget, setCreditPayTarget] = createSignal<string | null>(
     null,
@@ -30,12 +44,28 @@ export default function App() {
   >(null);
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
   const [activeView, setActiveView] = createSignal<
-    "home" | "analytics" | "recurring" | "partnerships"
+    "home" | "analytics" | "budgets" | "recurring" | "partnerships"
   >("home");
+  const [isBudgetSheetOpen, setIsBudgetSheetOpen] = createSignal(false);
+  const [editingBudget, setEditingBudget] = createSignal<BudgetProgress | null>(
+    null,
+  );
+  const [budgetInitialAccountId, setBudgetInitialAccountId] = createSignal<
+    string | undefined
+  >(undefined);
   const [activePartnershipId, setActivePartnershipId] = createSignal<
     string | null
   >(null);
   const queryClient = useQueryClient();
+
+  // Post-update toast
+  onMount(() => {
+    if (sessionStorage.getItem("simplfi-updated")) {
+      sessionStorage.removeItem("simplfi-updated");
+      setShowUpdateToast(true);
+      setTimeout(() => setShowUpdateToast(false), 3000);
+    }
+  });
 
   const handleAuthSuccess = (response: AuthResponse) => {
     localStorage.setItem("token", response.token);
@@ -65,7 +95,12 @@ export default function App() {
         when={token()}
         fallback={<LoginScreen onAuthSuccess={handleAuthSuccess} />}
       >
-        <div class="min-h-screen bg-app-bg text-white max-w-md mx-auto relative pb-28">
+        <div
+          class="min-h-screen bg-app-bg text-fg max-w-md mx-auto relative"
+          style={{
+            "padding-bottom": "calc(7rem + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
           <BalanceHeader
             onMenuOpen={() => setIsSidebarOpen(true)}
             onHomeClick={() => setActiveView("home")}
@@ -92,6 +127,11 @@ export default function App() {
                 setCreditPayTarget(null);
                 setIncomeAccountTarget(id);
                 setIsSheetOpen(true);
+              }}
+              onSetAccountBudget={(id) => {
+                setEditingBudget(null);
+                setBudgetInitialAccountId(id);
+                setIsBudgetSheetOpen(true);
               }}
             />
             <RecentList
@@ -120,8 +160,24 @@ export default function App() {
             <PartnershipView />
           </Show>
 
-          {/* FAB — hidden on partnerships view */}
-          <Show when={activeView() !== "partnerships"}>
+          <Show when={activeView() === "budgets"}>
+            <BudgetView
+              activePartnershipId={activePartnershipId()}
+              onAddBudget={() => {
+                setEditingBudget(null);
+                setIsBudgetSheetOpen(true);
+              }}
+              onEditBudget={(bp) => {
+                setEditingBudget(bp);
+                setIsBudgetSheetOpen(true);
+              }}
+            />
+          </Show>
+
+          {/* FAB — hidden on partnerships and budgets views */}
+          <Show
+            when={activeView() !== "partnerships" && activeView() !== "budgets"}
+          >
             <button
               type="button"
               aria-label="Add transaction"
@@ -129,10 +185,27 @@ export default function App() {
                 setEditingTx(null);
                 setIsSheetOpen(true);
               }}
-              class="fixed bottom-8 right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
+              class="fixed right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
+              style={{
+                bottom: "calc(2rem + env(safe-area-inset-bottom, 0px))",
+              }}
             >
               +
             </button>
+          </Show>
+
+          {/* Budget sheet */}
+          <Show when={isBudgetSheetOpen()}>
+            <BudgetSheet
+              onClose={() => {
+                setIsBudgetSheetOpen(false);
+                setEditingBudget(null);
+                setBudgetInitialAccountId(undefined);
+              }}
+              editBudget={editingBudget() ?? undefined}
+              initialAccountId={budgetInitialAccountId()}
+              activePartnershipId={activePartnershipId()}
+            />
           </Show>
 
           {/* Transaction sheet */}
@@ -165,6 +238,9 @@ export default function App() {
               onNavigate={setActiveView}
               onLogout={handleLogout}
               onClose={() => setIsSidebarOpen(false)}
+              theme={theme()}
+              onThemeChange={(t: ThemeMode) => setTheme(t)}
+              activePartnershipId={activePartnershipId()}
             />
           </Show>
 
@@ -176,6 +252,13 @@ export default function App() {
             />
           </Show>
         </div>
+
+        {/* Update toast */}
+        <Show when={showUpdateToast()}>
+          <div class="fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-purple-600/90 text-white text-sm font-medium shadow-lg backdrop-blur-sm z-50">
+            App updated
+          </div>
+        </Show>
       </Show>
     </Suspense>
   );

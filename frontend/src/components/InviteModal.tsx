@@ -32,18 +32,17 @@ export default function InviteModal(props: Props) {
 
   return (
     <>
-      {/* Backdrop */}
       <div
-        class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
         onClick={props.onClose}
         aria-hidden="true"
       />
 
       {/* Sheet */}
-      <div class="fixed bottom-0 inset-x-0 z-50 bg-sheet-bg rounded-t-2xl p-6 pb-10 max-w-md mx-auto">
-        <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+      <div class="fixed bottom-0 inset-x-0 z-50 bg-sheet-bg rounded-t-2xl p-6 pb-safe-sheet max-w-md mx-auto">
+        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
 
-        <h2 class="text-base font-semibold text-white mb-4">Invite someone</h2>
+        <h2 class="text-base font-semibold text-fg mb-4">Invite someone</h2>
 
         <form onSubmit={handleSubmit} class="space-y-3">
           <input
@@ -52,7 +51,7 @@ export default function InviteModal(props: Props) {
             value={username()}
             onInput={(e) => setUsername(e.currentTarget.value)}
             autofocus
-            class="w-full bg-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:ring-1 focus:ring-purple-500"
+            class="w-full bg-surface-hover rounded-xl px-4 py-3 text-sm text-fg placeholder:text-fg-3 outline-none focus:ring-1 focus:ring-purple-500"
           />
 
           {error() && <p class="text-xs text-red-400">{error()}</p>}
@@ -61,7 +60,7 @@ export default function InviteModal(props: Props) {
             <button
               type="button"
               onClick={props.onClose}
-              class="flex-1 py-3 rounded-xl text-sm font-medium bg-white/10 text-gray-400 hover:text-white transition-colors"
+              class="flex-1 py-3 rounded-xl text-sm font-medium bg-surface-hover text-fg-2 hover:text-fg transition-colors"
             >
               Cancel
             </button>

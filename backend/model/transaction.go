@@ -451,3 +451,117 @@ func Analytics(db *sql.DB, accountIDs []string, callerUserID string, period stri
 
 	return result, nil
 }
+
+// ExportRow holds flattened transaction data suitable for CSV export.
+type ExportRow struct {
+	CreatedAt   time.Time
+	Type        string
+	Category    string
+	Description string
+	Amount      float64
+	Account     string
+	ToAccount   string
+	Status      string
+}
+
+// ExportAll returns all transactions for the given account scope, ordered by date descending.
+// Account and category names are resolved via joins.
+func ExportAll(db *sql.DB, accountIDs []string, callerUserID string) ([]ExportRow, error) {
+	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
+
+	rows, err := db.Query(
+		`SELECT t.created_at, t.type,
+		        COALESCE(c.name, t.category, ''),
+		        COALESCE(t.description, ''),
+		        t.amount,
+		        COALESCE(a.name, ''),
+		        COALESCE(ta.name, ''),
+		        COALESCE(t.status, 'confirmed')
+		 FROM transactions t
+		 LEFT JOIN categories c ON c.id = t.category_id
+		 LEFT JOIN accounts a ON a.id = t.account_id
+		 LEFT JOIN accounts ta ON ta.id = t.to_account_id
+		 WHERE `+whereClause+`
+		 ORDER BY t.created_at DESC`,
+		whereArgs...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []ExportRow
+	for rows.Next() {
+		var row ExportRow
+		var createdAt string
+		if err := rows.Scan(&createdAt, &row.Type, &row.Category, &row.Description,
+			&row.Amount, &row.Account, &row.ToAccount, &row.Status); err != nil {
+			return nil, err
+		}
+		row.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+// AnalyticsTrendPoint is a single data point for the spending trend chart.
+type AnalyticsTrendPoint struct {
+	Label  string  `json:"label"`
+	Amount float64 `json:"amount"`
+}
+
+// AnalyticsTrend returns daily or weekly aggregated expense totals for the given period.
+func AnalyticsTrend(db *sql.DB, accountIDs []string, callerUserID string, period string, filterUserID string) ([]AnalyticsTrendPoint, error) {
+	from, to, err := analyticsDateRange(period)
+	if err != nil {
+		return nil, err
+	}
+
+	whereClause, whereArgs := buildAccountsWhereClause(accountIDs, callerUserID)
+
+	extraFilter := ""
+	if filterUserID != "" {
+		extraFilter = " AND t.user_id = ?"
+		whereArgs = append(whereArgs, filterUserID)
+	}
+
+	// Use daily buckets for 30d/month, weekly for ytd, monthly for lastyear
+	var dateFmt string
+	switch period {
+	case "lastyear":
+		dateFmt = "%Y-%m"
+	case "ytd":
+		dateFmt = "%Y-W%W"
+	default:
+		dateFmt = "%Y-%m-%d"
+	}
+
+	args := append(whereArgs, from, to)
+	rows, err := db.Query(
+		`SELECT strftime('`+dateFmt+`', t.created_at) AS bucket, COALESCE(SUM(t.amount), 0)
+		 FROM transactions t
+		 WHERE `+whereClause+` AND t.type = 'expense'
+		   AND t.created_at >= ? AND t.created_at < ?
+		   AND COALESCE(t.status, 'confirmed') = 'confirmed'`+extraFilter+`
+		 GROUP BY bucket
+		 ORDER BY bucket ASC`,
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var points []AnalyticsTrendPoint
+	for rows.Next() {
+		var p AnalyticsTrendPoint
+		if err := rows.Scan(&p.Label, &p.Amount); err != nil {
+			return nil, err
+		}
+		points = append(points, p)
+	}
+	if points == nil {
+		points = []AnalyticsTrendPoint{}
+	}
+	return points, rows.Err()
+}

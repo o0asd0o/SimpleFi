@@ -91,21 +91,25 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
   };
 
   return (
-    <header aria-label="Balance summary" class="px-6 pt-4 pb-6 text-center">
+    <header
+      aria-label="Balance summary"
+      class="px-6 pb-6 text-center"
+      style={{ "padding-top": "calc(1rem + env(safe-area-inset-top, 0px))" }}
+    >
       <div class="flex items-center justify-between mb-4">
         <button
           type="button"
           onClick={props.onHomeClick}
-          class="text-sm text-gray-400 transition-colors hover:text-white"
+          class="text-sm text-fg-2 transition-colors hover:text-fg"
           aria-label="Go to home"
         >
           Hi,{" "}
-          <span class="text-white font-medium">{meQuery.data?.name ?? ""}</span>
+          <span class="text-fg font-medium">{meQuery.data?.name ?? ""}</span>
         </button>
         <button
           type="button"
           onClick={props.onMenuOpen}
-          class="p-1.5 -mr-1.5 text-gray-400 hover:text-white transition-colors"
+          class="p-1.5 -mr-1.5 text-fg-2 hover:text-fg transition-colors"
           aria-label="Open menu"
         >
           <svg
@@ -123,11 +127,11 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
           </svg>
         </button>
       </div>
-      <p class="text-xs font-medium tracking-widest text-gray-500 uppercase mb-3">
+      <p class="text-xs font-medium tracking-widest text-fg-3 uppercase mb-3">
         {balanceLabel()}
       </p>
       <div
-        class="font-bold text-white mb-4 tabular-nums transition-all"
+        class="font-bold text-fg mb-4 tabular-nums transition-all"
         classList={{
           "text-5xl": Math.abs(balance()) < 1_000_000,
           "text-4xl":
@@ -140,15 +144,18 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
       </div>
       <div class="flex justify-center gap-6 text-sm">
         <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
-          <span class="text-gray-400">
-            <span class="text-blue-400 font-medium">{fmt(income())}</span> in
+          <span class="w-1.5 h-1.5 rounded-full bg-amount-income inline-block" />
+          <span class="text-fg-2">
+            <span class="text-amount-income font-medium">{fmt(income())}</span>{" "}
+            in
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block" />
-          <span class="text-gray-400">
-            <span class="text-purple-400 font-medium">{fmt(expenses())}</span>{" "}
+          <span class="w-1.5 h-1.5 rounded-full bg-amount-expense inline-block" />
+          <span class="text-fg-2">
+            <span class="text-amount-expense font-medium">
+              {fmt(expenses())}
+            </span>{" "}
             out
           </span>
         </div>

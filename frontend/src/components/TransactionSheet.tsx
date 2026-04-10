@@ -361,7 +361,7 @@ export default function TransactionSheet(props: Props) {
     <>
       {/* Backdrop */}
       <div
-        class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
         onClick={props.onClose}
         aria-hidden="true"
       />
@@ -371,22 +371,19 @@ export default function TransactionSheet(props: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={editing() ? "Edit transaction" : "Add transaction"}
-        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter max-h-[90vh] overflow-y-auto"
+        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter max-h-[90vh] overflow-y-auto"
         style={{ right: `${scrollbarOffset}px` }}
       >
         {/* Handle bar */}
-        <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
 
-        {/* Mode toggle */}
-        <div class="flex bg-white/5 rounded-xl p-1 mb-4">
+        <div class="flex bg-surface rounded-xl p-1 mb-4">
           <button
             type="button"
             onClick={() => setMode("expense")}
             class={cn(
               "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "expense"
-                ? "bg-purple-600 text-white"
-                : "text-gray-500",
+              mode() === "expense" ? "bg-purple-600 text-white" : "text-fg-3",
             )}
           >
             Spent
@@ -402,7 +399,7 @@ export default function TransactionSheet(props: Props) {
             }}
             class={cn(
               "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "income" ? "bg-blue-600 text-white" : "text-gray-500",
+              mode() === "income" ? "bg-blue-600 text-white" : "text-fg-3",
             )}
           >
             Earned
@@ -421,9 +418,7 @@ export default function TransactionSheet(props: Props) {
             }}
             class={cn(
               "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "transfer"
-                ? "bg-cyan-500 text-white"
-                : "text-gray-500",
+              mode() === "transfer" ? "bg-cyan-500 text-white" : "text-fg-3",
             )}
           >
             Transfer
@@ -431,7 +426,7 @@ export default function TransactionSheet(props: Props) {
         </div>
 
         {/* Account selector */}
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+        <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
           {mode() === "transfer" ? "From" : "Account"}
         </p>
         <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
@@ -448,7 +443,7 @@ export default function TransactionSheet(props: Props) {
                   "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
                   accountId() === acc.id
                     ? "bg-purple-600 text-white"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10",
+                    : "bg-surface text-fg-2 hover:bg-surface-hover",
                 )}
               >
                 {accountLabel(acc)}
@@ -459,7 +454,7 @@ export default function TransactionSheet(props: Props) {
 
         {/* To account (transfer mode only) */}
         <Show when={mode() === "transfer"}>
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+          <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
             {isPayingCreditCard() ? "Pay to" : "To"}
           </p>
           <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
@@ -474,7 +469,7 @@ export default function TransactionSheet(props: Props) {
                       ? acc.type === "credit"
                         ? "bg-purple-600 text-white"
                         : "bg-cyan-500 text-white"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10",
+                      : "bg-surface text-fg-2 hover:bg-surface-hover",
                   )}
                 >
                   {accountLabel(acc)}
@@ -487,14 +482,11 @@ export default function TransactionSheet(props: Props) {
         {/* Category pills (hidden in transfer mode) */}
         <Show when={mode() !== "transfer"}>
           <div class="flex items-center justify-between mb-2">
-            <p class="text-xs text-gray-500 uppercase tracking-wider">
-              Category
-            </p>
+            <p class="text-xs text-fg-3 uppercase tracking-wider">Category</p>
             <button
               type="button"
               onClick={() => setShowManageCategories(true)}
-              class="p-1 text-gray-500 hover:text-white transition-colors"
-              aria-label="Manage categories"
+              class="p-1 text-fg-3 hover:text-fg transition-colors"
             >
               <svg
                 class="w-4 h-4"
@@ -526,7 +518,7 @@ export default function TransactionSheet(props: Props) {
                     "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
                     categoryId() === cat.id
                       ? "bg-purple-600 text-white"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10",
+                      : "bg-surface text-fg-2 hover:bg-surface-hover",
                   )}
                 >
                   {cat.icon} {cat.name}
@@ -556,9 +548,9 @@ export default function TransactionSheet(props: Props) {
           value={formattedAmount()}
           onKeyDown={handleAmountKeyDown}
           onInput={handleAmountInput}
-          class="w-full text-6xl font-bold bg-transparent text-white text-center outline-none mb-2 placeholder:text-white/20"
+          class="w-full text-6xl font-bold bg-transparent text-fg text-center outline-none mb-2 placeholder:text-fg-3/50"
         />
-        <p class="text-center text-gray-500 text-sm mb-6">Enter amount</p>
+        <p class="text-center text-fg-3 text-sm mb-6">Enter amount</p>
 
         {/* Description + Repeat */}
         <div class="relative flex items-center gap-2 mb-6">
@@ -567,7 +559,7 @@ export default function TransactionSheet(props: Props) {
             placeholder="Description (optional)"
             value={description()}
             onInput={(e) => setDescription(e.currentTarget.value)}
-            class="flex-1 min-w-0 bg-white/5 rounded-xl px-4 py-3 text-white text-sm placeholder:text-gray-600 outline-none focus:ring-1 focus:ring-purple-500"
+            class="flex-1 min-w-0 bg-surface rounded-xl px-4 py-3 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
           />
           <button
             type="button"
@@ -576,14 +568,14 @@ export default function TransactionSheet(props: Props) {
               "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
               isRecurring()
                 ? "bg-purple-600/30 ring-1 ring-purple-500"
-                : "bg-white/5",
+                : "bg-surface",
             )}
             aria-label="Set recurring"
           >
             <svg
               class={cn(
                 "w-5 h-5",
-                isRecurring() ? "text-purple-400" : "text-gray-500",
+                isRecurring() ? "text-purple-400" : "text-fg-3",
               )}
               fill="none"
               viewBox="0 0 24 24"
@@ -602,18 +594,18 @@ export default function TransactionSheet(props: Props) {
         {/* Recurring modal */}
         <Show when={showRecurringModal()}>
           <div
-            class="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
+            class="fixed inset-0 bg-overlay z-[60] backdrop-blur-sm"
             onClick={() => setShowRecurringModal(false)}
           />
           <div
-            class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-10 sheet-enter"
+            class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter"
             style={{ right: `${scrollbarOffset}px` }}
           >
-            <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
-            <h3 class="text-white font-semibold text-lg mb-6">Repeat</h3>
+            <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+            <h3 class="text-fg font-semibold text-lg mb-6">Repeat</h3>
 
             {/* Frequency pills */}
-            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+            <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
               Occurrence
             </p>
             <div class="flex gap-2 flex-wrap mb-6">
@@ -639,7 +631,7 @@ export default function TransactionSheet(props: Props) {
                       "px-4 py-2 rounded-full text-sm font-medium transition-colors",
                       isRecurring() && frequency() === opt.value
                         ? "bg-purple-600 text-white"
-                        : "bg-white/5 text-gray-400 hover:bg-white/10",
+                        : "bg-surface text-fg-2 hover:bg-surface-hover",
                     )}
                   >
                     {opt.label}
@@ -649,21 +641,19 @@ export default function TransactionSheet(props: Props) {
             </div>
 
             {/* Start date */}
-            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+            <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
               {editing() ? "Next due" : "Start date"}
             </p>
             <input
               type="date"
               value={startDate()}
               onInput={(e) => setStartDate(e.currentTarget.value)}
-              class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-4 [color-scheme:dark]"
+              class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-4"
             />
 
             {/* End date (optional) */}
             <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-gray-500 uppercase tracking-wider">
-                End date
-              </p>
+              <p class="text-xs text-fg-3 uppercase tracking-wider">End date</p>
               <Show when={endDate()}>
                 <button
                   type="button"
@@ -680,9 +670,9 @@ export default function TransactionSheet(props: Props) {
               onInput={(e) => setEndDate(e.currentTarget.value)}
               min={startDate()}
               placeholder="Indefinite"
-              class="w-full bg-white/5 rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-2 [color-scheme:dark]"
+              class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-2"
             />
-            <p class="text-xs text-gray-500 mb-6">
+            <p class="text-xs text-fg-3 mb-6">
               {endDate() ? "" : "No end date — repeats indefinitely"}
             </p>
 
@@ -695,7 +685,7 @@ export default function TransactionSheet(props: Props) {
                     setIsRecurring(false);
                     setShowRecurringModal(false);
                   }}
-                  class="flex-1 py-3 rounded-2xl bg-white/5 text-gray-400 font-medium text-sm"
+                  class="flex-1 py-3 rounded-2xl bg-surface text-fg-2 font-medium text-sm"
                 >
                   Turn Off
                 </button>

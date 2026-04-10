@@ -13,7 +13,8 @@
     "@fontsource-variable/manrope": "^5.2.8",
     "@tanstack/solid-query": "^5.96.2",
     "clsx": "^2.1.1",
-    "solid-js": "^1.8.0"
+    "solid-js": "^1.8.0",
+    "uplot": "^1.6.32"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",

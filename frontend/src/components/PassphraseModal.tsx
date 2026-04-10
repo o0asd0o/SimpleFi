@@ -16,18 +16,18 @@ export default function PassphraseModal(props: PassphraseModalProps) {
   };
 
   return (
-    <div class="fixed inset-0 z-50 bg-black/80 flex items-end justify-center">
-      <div class="w-full max-w-md bg-app-bg border-t border-white/10 rounded-t-2xl p-6 pb-10 animate-slide-up">
-        <h2 class="text-xl font-bold text-white mb-2">
+    <div class="fixed inset-0 z-50 bg-overlay-heavy flex items-end justify-center">
+      <div class="w-full max-w-md bg-sheet-bg border-t border-dim rounded-t-2xl p-6 pb-10 animate-slide-up">
+        <h2 class="text-xl font-bold text-fg mb-2">
           Save Your Recovery Passphrase
         </h2>
-        <p class="text-sm text-gray-400 mb-6">
+        <p class="text-sm text-fg-2 mb-6">
           Write this down and keep it safe. This is the only way to recover your
           account if you forget your password. It will not be shown again.
         </p>
 
-        <div class="bg-white/10 rounded-xl p-4 mb-6">
-          <p class="text-lg font-mono text-white text-center leading-relaxed tracking-wide">
+        <div class="bg-surface-hover rounded-xl p-4 mb-6">
+          <p class="text-lg font-mono text-fg text-center leading-relaxed tracking-wide">
             {props.passphrase}
           </p>
         </div>
@@ -40,7 +40,7 @@ export default function PassphraseModal(props: PassphraseModalProps) {
               "w-full py-3 rounded-xl font-medium transition-colors border",
               copied()
                 ? "border-green-500/30 text-green-400 bg-green-500/10"
-                : "border-white/10 text-gray-300 hover:bg-white/5",
+                : "border-dim text-fg-2 hover:bg-surface",
             )}
           >
             {copied() ? "Copied!" : "Copy to Clipboard"}

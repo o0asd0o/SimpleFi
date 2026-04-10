@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,9 @@ import (
 	"simple-fi/handler"
 	"simple-fi/store"
 )
+
+// buildVersion is set at build time via -ldflags "-X main.buildVersion=..."
+var buildVersion = "dev"
 
 func main() {
 	loadEnv(".env")
@@ -38,6 +42,11 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	mux.HandleFunc("GET /api/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		json.NewEncoder(w).Encode(map[string]string{"version": buildVersion})
+	})
 	mux.HandleFunc("POST /api/auth/register", handler.HandleRegister(db, jwtSecret))
 	mux.HandleFunc("POST /api/auth/login", handler.HandleLogin(db, jwtSecret))
 	mux.HandleFunc("POST /api/auth/reset-password", handler.HandleResetPassword(db))
@@ -52,6 +61,8 @@ func main() {
 	protected.HandleFunc("POST /api/transactions/{id}/skip", handler.HandleSkipTransaction(db))
 	protected.HandleFunc("GET /api/statistics", handler.HandleGetStatistics(db))
 	protected.HandleFunc("GET /api/analytics", handler.HandleGetAnalytics(db))
+	protected.HandleFunc("GET /api/analytics/trend", handler.HandleGetAnalyticsTrend(db))
+	protected.HandleFunc("GET /api/transactions/export", handler.HandleExportTransactions(db))
 	protected.HandleFunc("GET /api/recurring-rules", handler.HandleListRecurringRules(db))
 	protected.HandleFunc("POST /api/recurring-rules", handler.HandleCreateRecurringRule(db))
 	protected.HandleFunc("PUT /api/recurring-rules/{id}", handler.HandleUpdateRecurringRule(db))
@@ -74,6 +85,10 @@ func main() {
 	protected.HandleFunc("GET /api/invitations", handler.HandleListInvitations(db))
 	protected.HandleFunc("GET /api/invitations/sent", handler.HandleListSentInvitations(db))
 	protected.HandleFunc("POST /api/invitations/{id}/respond", handler.HandleRespondToInvitation(db))
+	protected.HandleFunc("GET /api/budgets", handler.HandleListBudgets(db))
+	protected.HandleFunc("POST /api/budgets", handler.HandleCreateBudget(db))
+	protected.HandleFunc("PUT /api/budgets/{id}", handler.HandleUpdateBudget(db))
+	protected.HandleFunc("DELETE /api/budgets/{id}", handler.HandleDeleteBudget(db))
 	mux.Handle("/api/", auth.RequireAuth(jwtSecret, protected))
 
 	// Serve frontend static files when STATIC_DIR is set
@@ -105,15 +120,31 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 // spaHandler serves static files from dir, falling back to index.html for SPA routes.
+// Sets cache headers: immutable for hashed assets, no-store for sw.js/index.html/manifest.
 func spaHandler(dir string) http.Handler {
 	fs := http.FileServer(http.Dir(dir))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		// Set cache headers based on file type
+		switch {
+		case strings.HasPrefix(path, "/assets/"):
+			// Vite hashed assets — cache forever
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		case path == "/sw.js" || path == "/" || path == "/index.html" || path == "/manifest.webmanifest":
+			// Must always revalidate — critical for iOS PWA updates
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		default:
+			w.Header().Set("Cache-Control", "no-cache")
+		}
+
 		// If the file exists on disk, serve it directly
-		if _, err := os.Stat(filepath.Join(dir, r.URL.Path)); err == nil {
+		if _, err := os.Stat(filepath.Join(dir, path)); err == nil {
 			fs.ServeHTTP(w, r)
 			return
 		}
 		// SPA fallback: serve index.html for client-side routing
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
 	})
 }

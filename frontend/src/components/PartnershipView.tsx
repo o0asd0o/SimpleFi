@@ -103,16 +103,16 @@ export default function PartnershipView() {
       {/* Pending invitations */}
       <Show when={invitations().length > 0}>
         <section>
-          <h2 class="text-xs text-gray-500 uppercase tracking-widest mb-3">
+          <h2 class="text-xs text-fg-3 uppercase tracking-widest mb-3">
             Pending Invitations
           </h2>
           <div class="space-y-2">
             <For each={invitations()}>
               {(inv) => (
-                <div class="bg-white/5 rounded-xl p-4">
+                <div class="bg-surface rounded-xl p-4 shadow-sm dark:shadow-none">
                   <div class="flex items-start justify-between gap-3">
                     <div>
-                      <p class="text-sm font-medium text-white">
+                      <p class="text-sm font-medium text-fg">
                         <span class="text-purple-400">{inv.from_name}</span>{" "}
                         invited you to{" "}
                         <span
@@ -127,7 +127,7 @@ export default function PartnershipView() {
                           {inv.partnership_name}
                         </span>
                       </p>
-                      <p class="text-xs text-gray-500 mt-0.5 capitalize">
+                      <p class="text-xs text-fg-3 mt-0.5 capitalize">
                         {inv.partnership_type}
                       </p>
                     </div>
@@ -148,7 +148,7 @@ export default function PartnershipView() {
                         onClick={() =>
                           respondMut.mutate({ id: inv.id, accept: false })
                         }
-                        class="px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-gray-300 font-medium transition-colors disabled:opacity-50"
+                        class="px-3 py-1.5 text-xs rounded-lg bg-surface-hover hover:bg-surface-active text-fg-2 font-medium transition-colors disabled:opacity-50"
                       >
                         Decline
                       </button>
@@ -164,7 +164,7 @@ export default function PartnershipView() {
       {/* Partnerships list */}
       <section>
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs text-gray-500 uppercase tracking-widest">
+          <h2 class="text-xs text-fg-3 uppercase tracking-widest">
             Your Partnerships
           </h2>
           <button
@@ -181,13 +181,13 @@ export default function PartnershipView() {
 
         {/* Create form */}
         <Show when={showCreate()}>
-          <div class="bg-white/5 rounded-xl p-4 mb-3 space-y-3">
+          <div class="bg-surface rounded-xl p-4 mb-3 space-y-3">
             <input
               type="text"
               placeholder="Partnership name (optional)"
               value={newName()}
               onInput={(e) => setNewName(e.currentTarget.value)}
-              class="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:ring-1 focus:ring-purple-500"
+              class="w-full bg-surface-hover rounded-lg px-3 py-2 text-sm text-fg placeholder:text-fg-3 outline-none focus:ring-1 focus:ring-purple-500"
             />
             <div class="flex gap-2">
               <button
@@ -197,7 +197,7 @@ export default function PartnershipView() {
                   "flex-1 py-2 rounded-lg text-xs font-medium transition-colors",
                   newType() === "group"
                     ? "bg-purple-600 text-white"
-                    : "bg-white/10 text-gray-400 hover:text-white",
+                    : "bg-surface-hover text-fg-2 hover:text-fg",
                 )}
               >
                 Group
@@ -210,7 +210,7 @@ export default function PartnershipView() {
                   "flex-1 py-2 rounded-lg text-xs font-medium transition-colors",
                   newType() === "couple"
                     ? "bg-pink-600 text-white"
-                    : "bg-white/10 text-gray-400 hover:text-white",
+                    : "bg-surface-hover text-fg-2 hover:text-fg",
                   hasCouple() && "opacity-40 cursor-not-allowed",
                 )}
               >
@@ -232,7 +232,7 @@ export default function PartnershipView() {
                   setShowCreate(false);
                   setCreateError("");
                 }}
-                class="flex-1 py-2 rounded-lg text-xs font-medium bg-white/10 text-gray-400 hover:text-white transition-colors"
+                class="flex-1 py-2 rounded-lg text-xs font-medium bg-surface-hover text-fg-2 hover:text-fg transition-colors"
               >
                 Cancel
               </button>
@@ -252,10 +252,10 @@ export default function PartnershipView() {
 
         <Switch>
           <Match when={partnershipsQuery.isPending}>
-            <p class="text-gray-500 text-sm text-center py-4">Loading…</p>
+            <p class="text-fg-3 text-sm text-center py-4">Loading…</p>
           </Match>
           <Match when={partnerships().length === 0}>
-            <div class="text-center py-8 text-gray-500">
+            <div class="text-center py-8 text-fg-3">
               <p class="text-sm">No partnerships yet.</p>
               <p class="text-xs mt-1">
                 Create one and invite someone to get started.
@@ -266,12 +266,12 @@ export default function PartnershipView() {
             <div class="space-y-3">
               <For each={partnerships()}>
                 {(p) => (
-                  <div class="bg-white/5 rounded-xl p-4 space-y-3">
+                  <div class="bg-surface rounded-xl p-4 space-y-3 shadow-sm dark:shadow-none">
                     {/* Header */}
                     <div class="flex items-center justify-between">
                       <div>
                         <div class="flex items-center gap-2">
-                          <h3 class="text-sm font-semibold text-white">
+                          <h3 class="text-sm font-semibold text-fg">
                             {p.type === "couple" && (
                               <span class="text-pink-400 mr-1">♥</span>
                             )}
@@ -295,7 +295,7 @@ export default function PartnershipView() {
                         <button
                           type="button"
                           onClick={() => setInvitePartnershipId(p.id)}
-                          class="text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
+                          class="text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded-lg hover:bg-surface transition-colors"
                         >
                           Invite
                         </button>
@@ -311,7 +311,7 @@ export default function PartnershipView() {
                               leaveMut.mutate(p.id);
                             }
                           }}
-                          class="text-xs text-gray-500 hover:text-red-400 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
+                          class="text-xs text-fg-3 hover:text-red-400 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
                         >
                           Leave
                         </button>
@@ -328,22 +328,20 @@ export default function PartnershipView() {
                                 "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
                                 m.user_id === myId()
                                   ? "bg-purple-600/30 text-purple-300"
-                                  : "bg-white/10 text-gray-300",
+                                  : "bg-surface-hover text-fg-2",
                               )}
                             >
                               {m.name.charAt(0).toUpperCase()}
                             </div>
-                            <span class="text-sm text-gray-300">{m.name}</span>
-                            <span class="text-xs text-gray-600">
-                              @{m.username}
-                            </span>
+                            <span class="text-sm text-fg-2">{m.name}</span>
+                            <span class="text-xs text-fg-3">@{m.username}</span>
                             <Show when={m.user_id === myId()}>
                               <span class="text-xs text-purple-500 ml-auto">
                                 you
                               </span>
                             </Show>
                             <Show when={m.status === "left"}>
-                              <span class="text-xs text-gray-600 ml-auto italic">
+                              <span class="text-xs text-fg-3 ml-auto italic">
                                 left
                               </span>
                             </Show>
@@ -362,20 +360,18 @@ export default function PartnershipView() {
       {/* Sent invitations */}
       <Show when={sentInvitations().length > 0}>
         <section>
-          <h2 class="text-xs text-gray-500 uppercase tracking-widest mb-3">
+          <h2 class="text-xs text-fg-3 uppercase tracking-widest mb-3">
             Sent Invitations
           </h2>
           <div class="space-y-2">
             <For each={sentInvitations()}>
               {(inv) => (
-                <div class="bg-white/5 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div class="bg-surface rounded-xl px-4 py-3 flex items-center justify-between shadow-sm dark:shadow-none">
                   <div>
-                    <p class="text-sm text-gray-300">
-                      Invited <span class="text-white">{inv.to_name}</span>
+                    <p class="text-sm text-fg-2">
+                      Invited <span class="text-fg">{inv.to_name}</span>
                     </p>
-                    <p class="text-xs text-gray-600">
-                      to {inv.partnership_name}
-                    </p>
+                    <p class="text-xs text-fg-3">to {inv.partnership_name}</p>
                   </div>
                   <span class="text-xs text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
                     pending

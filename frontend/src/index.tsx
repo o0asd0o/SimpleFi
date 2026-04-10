@@ -4,6 +4,7 @@ import App from "./App";
 // @ts-expect-error — no type declarations needed for font side-effect import
 import "@fontsource-variable/manrope";
 import "./index.css";
+import "./lib/sw-update";
 
 const queryClient = new QueryClient();
 
