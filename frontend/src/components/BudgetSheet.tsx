@@ -294,7 +294,7 @@ export default function BudgetSheet(props: Props) {
             <select
               value={accountId()}
               onChange={(e) => setAccountId(e.currentTarget.value)}
-              class="w-full bg-surface text-fg rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
+              class="w-full bg-surface text-fg rounded-xl px-4 py-3 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
             >
               <option value="">All Accounts</option>
               <For each={accountsQuery.data ?? []}>
@@ -381,7 +381,7 @@ export default function BudgetSheet(props: Props) {
                             e.currentTarget.value,
                           )
                         }
-                        class="flex-1 bg-surface text-fg rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
+                        class="flex-1 bg-surface text-fg rounded-xl px-3 py-2.5 min-h-[44px] text-sm outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
                       >
                         <option value="">Pick category</option>
                         <For each={expenseCategories()}>

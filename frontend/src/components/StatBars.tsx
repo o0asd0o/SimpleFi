@@ -226,7 +226,7 @@ export default function StatBars(props: Props) {
         <select
           value={breakdown()}
           onChange={(e) => setBreakdown(e.currentTarget.value as Breakdown)}
-          class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+          class="w-full appearance-none bg-surface rounded-xl px-4 py-3 min-h-[44px] text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
         >
           <option value="category">By Category</option>
           <option value="account">By Account</option>
