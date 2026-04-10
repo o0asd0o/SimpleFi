@@ -80,6 +80,7 @@ export type CreateAccountInput = {
   name: string;
   type: "cash" | "credit" | "debit" | "savings";
   is_private?: boolean;
+  initial_balance?: number;
 };
 
 export type User = {

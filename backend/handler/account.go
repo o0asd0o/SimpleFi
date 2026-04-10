@@ -27,9 +27,10 @@ func HandleListAccounts(db *sql.DB) http.HandlerFunc {
 func HandleCreateAccount(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Name      string `json:"name"`
-			Type      string `json:"type"`
-			IsPrivate bool   `json:"is_private"`
+			Name           string  `json:"name"`
+			Type           string  `json:"type"`
+			IsPrivate      bool    `json:"is_private"`
+			InitialBalance float64 `json:"initial_balance"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -45,6 +46,10 @@ func HandleCreateAccount(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "type must be 'cash', 'credit', 'debit', or 'savings'", http.StatusBadRequest)
 			return
 		}
+		if body.InitialBalance < 0 {
+			http.Error(w, "initial_balance must be zero or positive", http.StatusBadRequest)
+			return
+		}
 
 		userID := auth.UserIDFromContext(r.Context())
 		a := model.Account{Name: body.Name, Type: body.Type, IsPrivate: body.IsPrivate}
@@ -52,6 +57,21 @@ func HandleCreateAccount(db *sql.DB) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "failed to create account", http.StatusInternalServerError)
 			return
+		}
+
+		if body.InitialBalance > 0 {
+			_, err = model.Create(db, model.Transaction{
+				Amount:      body.InitialBalance,
+				Type:        "income",
+				Description: "Opening balance",
+				AccountID:   created.ID,
+				Status:      "confirmed",
+			}, userID)
+			if err != nil {
+				http.Error(w, "account created but failed to set initial balance", http.StatusInternalServerError)
+				return
+			}
+			created.Balance = body.InitialBalance
 		}
 
 		w.Header().Set("Content-Type", "application/json")

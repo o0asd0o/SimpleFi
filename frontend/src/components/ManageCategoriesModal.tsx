@@ -211,8 +211,8 @@ export default function ManageCategoriesModal(props: Props) {
                       type="text"
                       value={editIcon()}
                       onInput={(e) => setEditIcon(e.currentTarget.value)}
-                      class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500"
-                      placeholder="🔖"
+                      class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500 placeholder:opacity-30"
+                      placeholder="💸"
                     />
                     <input
                       ref={editInputRef}
@@ -277,8 +277,8 @@ export default function ManageCategoriesModal(props: Props) {
                 type="text"
                 value={addIcon()}
                 onInput={(e) => setAddIcon(e.currentTarget.value)}
-                class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500"
-                placeholder="🔖"
+                class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500 placeholder:opacity-30"
+                placeholder="💸"
               />
               <input
                 ref={addInputRef}
