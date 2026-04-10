@@ -50,6 +50,9 @@ export default function App() {
   const [editingBudget, setEditingBudget] = createSignal<BudgetProgress | null>(
     null,
   );
+  const [budgetInitialAccountId, setBudgetInitialAccountId] = createSignal<
+    string | undefined
+  >(undefined);
   const [activePartnershipId, setActivePartnershipId] = createSignal<
     string | null
   >(null);
@@ -102,7 +105,6 @@ export default function App() {
             onMenuOpen={() => setIsSidebarOpen(true)}
             onHomeClick={() => setActiveView("home")}
             activePartnershipId={activePartnershipId()}
-            onBudgetClick={() => setActiveView("budgets")}
           />
 
           {/* Context switcher — shown for all views when in a partnership */}
@@ -125,6 +127,11 @@ export default function App() {
                 setCreditPayTarget(null);
                 setIncomeAccountTarget(id);
                 setIsSheetOpen(true);
+              }}
+              onSetAccountBudget={(id) => {
+                setEditingBudget(null);
+                setBudgetInitialAccountId(id);
+                setIsBudgetSheetOpen(true);
               }}
             />
             <RecentList
@@ -193,8 +200,10 @@ export default function App() {
               onClose={() => {
                 setIsBudgetSheetOpen(false);
                 setEditingBudget(null);
+                setBudgetInitialAccountId(undefined);
               }}
               editBudget={editingBudget() ?? undefined}
+              initialAccountId={budgetInitialAccountId()}
               activePartnershipId={activePartnershipId()}
             />
           </Show>

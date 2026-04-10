@@ -30,6 +30,7 @@ type CategoryRow = { category_id: string; amount: string };
 type Props = {
   onClose: () => void;
   editBudget?: BudgetProgress;
+  initialAccountId?: string;
   activePartnershipId: string | null;
 };
 
@@ -60,15 +61,15 @@ export default function BudgetSheet(props: Props) {
   let panelRef: HTMLDivElement | undefined;
 
   const [name, setName] = createSignal(editing()?.name ?? "");
-  const [amount, setAmount] = createSignal(
-    editing()?.amount?.toString() ?? "",
-  );
+  const [amount, setAmount] = createSignal(editing()?.amount?.toString() ?? "");
   const [periodType, setPeriodType] = createSignal<PeriodType>(
     editing()?.period_type ?? "month",
   );
   const [startDate, setStartDate] = createSignal(editing()?.start_date ?? "");
   const [endDate, setEndDate] = createSignal(editing()?.end_date ?? "");
-  const [accountId, setAccountId] = createSignal(editing()?.account_id ?? "");
+  const [accountId, setAccountId] = createSignal(
+    editing()?.account_id ?? props.initialAccountId ?? "",
+  );
   const [categoryRows, setCategoryRows] = createSignal<CategoryRow[]>(
     editing()?.categories?.map((c) => ({
       category_id: c.category_id,
@@ -102,9 +103,7 @@ export default function BudgetSheet(props: Props) {
 
   const saveMutation = createMutation(() => ({
     mutationFn: (data: CreateBudgetInput) =>
-      editing()
-        ? updateBudget(editing()!.id, data)
-        : createBudget(data),
+      editing() ? updateBudget(editing()!.id, data) : createBudget(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
       props.onClose();
@@ -114,7 +113,13 @@ export default function BudgetSheet(props: Props) {
   const handleSubmit = () => {
     if (!isValid() || saveMutation.isPending) return;
     const input: CreateBudgetInput = {
-      name: name().trim() || (periodType() === "year" ? "Yearly Budget" : periodType() === "custom" ? "Custom Budget" : "Monthly Budget"),
+      name:
+        name().trim() ||
+        (periodType() === "year"
+          ? "Yearly Budget"
+          : periodType() === "custom"
+            ? "Custom Budget"
+            : "Monthly Budget"),
       amount: parseFloat(amount()),
       period_type: periodType(),
       account_id: accountId() || undefined,
@@ -122,7 +127,10 @@ export default function BudgetSheet(props: Props) {
       end_date: periodType() === "custom" ? endDate() : undefined,
       categories: categoryRows()
         .filter((r) => r.category_id && r.amount && parseFloat(r.amount) > 0)
-        .map((r) => ({ category_id: r.category_id, amount: parseFloat(r.amount) })),
+        .map((r) => ({
+          category_id: r.category_id,
+          amount: parseFloat(r.amount),
+        })),
     };
     saveMutation.mutate(input);
   };
@@ -135,7 +143,11 @@ export default function BudgetSheet(props: Props) {
     setCategoryRows((rows) => rows.filter((_, i) => i !== index));
   };
 
-  const updateCategoryRow = (index: number, field: keyof CategoryRow, value: string) => {
+  const updateCategoryRow = (
+    index: number,
+    field: keyof CategoryRow,
+    value: string,
+  ) => {
     setCategoryRows((rows) =>
       rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
     );
@@ -146,8 +158,12 @@ export default function BudgetSheet(props: Props) {
     // Swipe down to close
     if (panelRef) {
       const handlers = createSwipeHandlers({ onSwipeDown: props.onClose });
-      panelRef.addEventListener("touchstart", handlers.onTouchStart, { passive: true });
-      panelRef.addEventListener("touchmove", handlers.onTouchMove, { passive: true });
+      panelRef.addEventListener("touchstart", handlers.onTouchStart, {
+        passive: true,
+      });
+      panelRef.addEventListener("touchmove", handlers.onTouchMove, {
+        passive: true,
+      });
       panelRef.addEventListener("touchend", handlers.onTouchEnd);
       onCleanup(() => {
         panelRef?.removeEventListener("touchstart", handlers.onTouchStart);
@@ -199,8 +215,18 @@ export default function BudgetSheet(props: Props) {
             class="p-1.5 rounded-lg text-fg-3 hover:text-fg hover:bg-white/5 transition-colors"
             aria-label="Close"
           >
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -208,7 +234,9 @@ export default function BudgetSheet(props: Props) {
         <div class="overflow-y-auto max-h-[75dvh] px-5 pb-8 space-y-5">
           {/* Budget Name */}
           <div class="space-y-1.5">
-            <label class="text-xs text-fg-3 uppercase tracking-wider">Name</label>
+            <label class="text-xs text-fg-3 uppercase tracking-wider">
+              Name
+            </label>
             <input
               type="text"
               value={name()}
@@ -221,17 +249,33 @@ export default function BudgetSheet(props: Props) {
 
           {/* Amount */}
           <div class="space-y-1.5">
-            <label class="text-xs text-fg-3 uppercase tracking-wider">Spending Limit</label>
+            <label class="text-xs text-fg-3 uppercase tracking-wider">
+              Spending Limit
+            </label>
             <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-fg-3 text-sm">₱</span>
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-fg-3 text-sm">
+                ₱
+              </span>
               <input
                 type="text"
                 inputMode="decimal"
                 value={formattedDisplay(amount())}
-                onInput={(e) => setAmount(sanitizeAmount(e.currentTarget.value))}
+                onInput={(e) =>
+                  setAmount(sanitizeAmount(e.currentTarget.value))
+                }
                 onKeyDown={(e) => {
                   if (e.ctrlKey || e.metaKey || e.altKey) return;
-                  const allowed = new Set(["Backspace","Delete","ArrowLeft","ArrowRight","Home","End","Tab","Enter","Escape"]);
+                  const allowed = new Set([
+                    "Backspace",
+                    "Delete",
+                    "ArrowLeft",
+                    "ArrowRight",
+                    "Home",
+                    "End",
+                    "Tab",
+                    "Enter",
+                    "Escape",
+                  ]);
                   if (allowed.has(e.key) || /^[0-9]$/.test(e.key)) return;
                   if (e.key === "." && !amount().includes(".")) return;
                   e.preventDefault();
@@ -244,7 +288,9 @@ export default function BudgetSheet(props: Props) {
 
           {/* Scope */}
           <div class="space-y-1.5">
-            <label class="text-xs text-fg-3 uppercase tracking-wider">Scope</label>
+            <label class="text-xs text-fg-3 uppercase tracking-wider">
+              Scope
+            </label>
             <select
               value={accountId()}
               onChange={(e) => setAccountId(e.currentTarget.value)}
@@ -263,7 +309,9 @@ export default function BudgetSheet(props: Props) {
 
           {/* Duration */}
           <div class="space-y-1.5">
-            <label class="text-xs text-fg-3 uppercase tracking-wider">Duration</label>
+            <label class="text-xs text-fg-3 uppercase tracking-wider">
+              Duration
+            </label>
             <div class="flex gap-2">
               {(["month", "year", "custom"] as const).map((p) => (
                 <button
@@ -276,7 +324,11 @@ export default function BudgetSheet(props: Props) {
                       : "bg-surface text-fg-2 hover:text-fg",
                   )}
                 >
-                  {p === "month" ? "This Month" : p === "year" ? "This Year" : "Custom"}
+                  {p === "month"
+                    ? "This Month"
+                    : p === "year"
+                      ? "This Year"
+                      : "Custom"}
                 </button>
               ))}
             </div>
@@ -309,7 +361,9 @@ export default function BudgetSheet(props: Props) {
           {/* Category limits */}
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-xs text-fg-3 uppercase tracking-wider">Category Limits</label>
+              <label class="text-xs text-fg-3 uppercase tracking-wider">
+                Category Limits
+              </label>
               <span class="text-xs text-fg-3">(optional)</span>
             </div>
 
@@ -320,23 +374,39 @@ export default function BudgetSheet(props: Props) {
                     <div class="flex gap-2 items-center">
                       <select
                         value={row.category_id}
-                        onChange={(e) => updateCategoryRow(i(), "category_id", e.currentTarget.value)}
+                        onChange={(e) =>
+                          updateCategoryRow(
+                            i(),
+                            "category_id",
+                            e.currentTarget.value,
+                          )
+                        }
                         class="flex-1 bg-surface text-fg rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
                       >
                         <option value="">Pick category</option>
                         <For each={expenseCategories()}>
                           {(c) => (
-                            <option value={c.id}>{c.icon} {c.name}</option>
+                            <option value={c.id}>
+                              {c.icon} {c.name}
+                            </option>
                           )}
                         </For>
                       </select>
                       <div class="relative w-28">
-                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-3 text-xs">₱</span>
+                        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-3 text-xs">
+                          ₱
+                        </span>
                         <input
                           type="text"
                           inputMode="decimal"
                           value={formattedDisplay(row.amount)}
-                          onInput={(e) => updateCategoryRow(i(), "amount", sanitizeAmount(e.currentTarget.value))}
+                          onInput={(e) =>
+                            updateCategoryRow(
+                              i(),
+                              "amount",
+                              sanitizeAmount(e.currentTarget.value),
+                            )
+                          }
                           placeholder="0"
                           class="w-full bg-surface text-fg placeholder-fg-3 rounded-xl px-3 py-2.5 pl-6 text-sm outline-none focus:ring-2 focus:ring-purple-500/50"
                         />
@@ -347,8 +417,18 @@ export default function BudgetSheet(props: Props) {
                         class="p-1.5 rounded-lg text-fg-3 hover:text-pink-400 hover:bg-white/5 transition-colors flex-shrink-0"
                         aria-label="Remove category limit"
                       >
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -362,8 +442,18 @@ export default function BudgetSheet(props: Props) {
               onClick={addCategoryRow}
               class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-white/15 text-fg-3 text-sm hover:border-purple-500/50 hover:text-purple-400 transition-colors"
             >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
               Add category limit
             </button>
@@ -381,7 +471,11 @@ export default function BudgetSheet(props: Props) {
                 : "bg-surface text-fg-3 cursor-not-allowed",
             )}
           >
-            {saveMutation.isPending ? "Saving…" : editing() ? "Save Changes" : "Create Budget"}
+            {saveMutation.isPending
+              ? "Saving…"
+              : editing()
+                ? "Save Changes"
+                : "Create Budget"}
           </button>
         </div>
       </div>
