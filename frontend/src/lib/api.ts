@@ -159,14 +159,16 @@ export async function fetchTransactions(
   partnershipId?: string | null,
   accountId?: string | null,
   categoryId?: string | null,
-  sort?: "asc" | "desc",
+  sortDir?: "desc" | "asc",
+  type?: "income" | "expense" | "transfer" | null,
 ): Promise<TransactionPage> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (cursor) params.set("cursor", cursor);
   if (partnershipId) params.set("partnership_id", partnershipId);
   if (accountId) params.set("account_id", accountId);
   if (categoryId) params.set("category_id", categoryId);
-  if (sort) params.set("sort", sort);
+  if (sortDir) params.set("sort", sortDir);
+  if (type) params.set("type", type);
   const res = await apiFetch(`/api/transactions?${params}`);
   if (!res.ok) throw new Error("Failed to fetch transactions");
   return res.json();

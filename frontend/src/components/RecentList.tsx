@@ -56,6 +56,9 @@ export default function RecentList(props: Props) {
   const [filterCategoryId, setFilterCategoryId] = createSignal<string | null>(
     null,
   );
+  const [filterMode, setFilterMode] = createSignal<
+    "income" | "expense" | "transfer" | null
+  >(null);
   const [sortDir, setSortDir] = createSignal<"desc" | "asc">("desc");
   const [activeDropdown, setActiveDropdown] = createSignal<
     "account" | "category" | null
@@ -84,6 +87,7 @@ export default function RecentList(props: Props) {
       props.activePartnershipId,
       filterAccountId(),
       filterCategoryId(),
+      filterMode(),
       sortDir(),
     ],
     queryFn: ({ pageParam }: { pageParam: string | undefined }) =>
@@ -94,6 +98,7 @@ export default function RecentList(props: Props) {
         filterAccountId(),
         filterCategoryId(),
         sortDir(),
+        filterMode(),
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
@@ -192,10 +197,12 @@ export default function RecentList(props: Props) {
         activePartnershipId={props.activePartnershipId}
         filterAccountId={filterAccountId()}
         filterCategoryId={filterCategoryId()}
+        filterMode={filterMode()}
         sortDir={sortDir()}
         activeDropdown={activeDropdown()}
         onAccountFilter={setFilterAccountId}
         onCategoryFilter={setFilterCategoryId}
+        onModeFilter={setFilterMode}
         onSortToggle={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
         onDropdownToggle={(d) =>
           setActiveDropdown((cur) => (cur === d ? null : d))
@@ -204,6 +211,7 @@ export default function RecentList(props: Props) {
         onClearFilters={() => {
           setFilterAccountId(null);
           setFilterCategoryId(null);
+          setFilterMode(null);
         }}
       />
 
@@ -213,7 +221,7 @@ export default function RecentList(props: Props) {
           <Show when={!txQuery.isLoading}>
             <div class="text-center py-20 px-6">
               <Show
-                when={filterAccountId() || filterCategoryId()}
+                when={filterAccountId() || filterCategoryId() || filterMode()}
                 fallback={
                   <>
                     <p class="text-3xl mb-3">💸</p>

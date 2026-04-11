@@ -58,6 +58,7 @@ type ListFilters struct {
 	AccountID  string // filter to a specific account (account_id or to_account_id)
 	CategoryID string // filter to a specific category
 	SortDir    string // "asc" or "desc" (default "desc")
+	Type       string // "income", "expense", or "transfer"
 }
 
 func List(db *sql.DB, accountIDs []string, callerUserID string, limit int, cursor string, filters ListFilters) (TransactionPage, error) {
@@ -78,6 +79,10 @@ func List(db *sql.DB, accountIDs []string, callerUserID string, limit int, curso
 	if filters.CategoryID != "" {
 		whereClause += " AND t.category_id = ?"
 		whereArgs = append(whereArgs, filters.CategoryID)
+	}
+	if filters.Type != "" {
+		whereClause += " AND t.type = ?"
+		whereArgs = append(whereArgs, filters.Type)
 	}
 
 	var rows *sql.Rows
