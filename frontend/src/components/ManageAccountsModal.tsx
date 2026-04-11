@@ -136,72 +136,93 @@ export default function ManageAccountsModal(props: Props) {
     );
 
   return (
-    <SlidePanel onClose={props.onClose} ariaLabel="Manage accounts" escapeClose={false}>
+    <SlidePanel
+      onClose={props.onClose}
+      ariaLabel="Manage accounts"
+      escapeClose={false}
+    >
       {(isDesktop) => (
         <div class="px-6 pt-4 pb-safe-sheet">
-        <Show when={!isDesktop()}><div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" /></Show>
-        <h2 class="text-fg font-semibold text-xl text-center mb-6">
-          Manage Accounts
-        </h2>
+          <Show when={!isDesktop()}>
+            <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+          </Show>
+          <h2 class="text-fg font-semibold text-xl text-center mb-6">
+            Manage Accounts
+          </h2>
 
-        <Show when={deleteError()}>
-          <p class="text-red-400 text-sm text-center mb-4">{deleteError()}</p>
-        </Show>
+          <Show when={deleteError()}>
+            <p class="text-red-400 text-sm text-center mb-4">{deleteError()}</p>
+          </Show>
 
-        <div class="space-y-2">
-          <For each={ownAccounts()}>
-            {(account) => (
-              <Show
-                when={editingId() === account.id}
-                fallback={
-                  <div class="flex items-center gap-3 bg-surface rounded-xl px-4 py-3 shadow-sm dark:shadow-none">
-                    <span
-                      class={cn(
-                        "w-2 h-2 rounded-full flex-shrink-0",
-                        account.type === "credit"
-                          ? "bg-purple-500"
-                          : account.type === "savings"
-                            ? "bg-blue-400"
-                            : account.type === "debit"
-                              ? "bg-pink-500"
-                              : "bg-green-400",
-                      )}
-                    />
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-fg truncate">
-                        {account.name}
-                      </p>
-                      <p class="text-xs text-fg-3 capitalize">
-                        {account.type}
-                        {account.is_private && (
-                          <span class="ml-1 text-amber-500">· private</span>
-                        )}
-                      </p>
-                    </div>
-                    {/* Privacy toggle — only in group context */}
-                    <Show when={isGroupContext()}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          privacyMutation.mutate({
-                            id: account.id,
-                            isPrivate: !account.is_private,
-                          })
-                        }
-                        disabled={privacyMutation.isPending}
+          <div class="space-y-2">
+            <For each={ownAccounts()}>
+              {(account) => (
+                <Show
+                  when={editingId() === account.id}
+                  fallback={
+                    <div class="flex items-center gap-3 bg-surface rounded-xl px-4 py-3 shadow-sm dark:shadow-none">
+                      <span
                         class={cn(
-                          "p-1.5 transition-colors disabled:opacity-50",
-                          account.is_private
-                            ? "text-amber-400 hover:text-amber-300"
-                            : "text-fg-4 hover:text-amber-400",
+                          "w-2 h-2 rounded-full flex-shrink-0",
+                          account.type === "credit"
+                            ? "bg-purple-500"
+                            : account.type === "savings"
+                              ? "bg-blue-400"
+                              : account.type === "debit"
+                                ? "bg-pink-500"
+                                : "bg-green-400",
                         )}
-                        aria-label={
-                          account.is_private ? "Make public" : "Make private"
-                        }
-                      >
-                        <Show
-                          when={account.is_private}
-                          fallback={
+                      />
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-fg truncate">
+                          {account.name}
+                        </p>
+                        <p class="text-xs text-fg-3 capitalize">
+                          {account.type}
+                          {account.is_private && (
+                            <span class="ml-1 text-amber-500">· private</span>
+                          )}
+                        </p>
+                      </div>
+                      {/* Privacy toggle — only in group context */}
+                      <Show when={isGroupContext()}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            privacyMutation.mutate({
+                              id: account.id,
+                              isPrivate: !account.is_private,
+                            })
+                          }
+                          disabled={privacyMutation.isPending}
+                          class={cn(
+                            "p-1.5 transition-colors disabled:opacity-50",
+                            account.is_private
+                              ? "text-amber-400 hover:text-amber-300"
+                              : "text-fg-4 hover:text-amber-400",
+                          )}
+                          aria-label={
+                            account.is_private ? "Make public" : "Make private"
+                          }
+                        >
+                          <Show
+                            when={account.is_private}
+                            fallback={
+                              <svg
+                                class="w-4 h-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+                                />
+                              </svg>
+                            }
+                          >
                             <svg
                               class="w-4 h-4"
                               fill="none"
@@ -212,137 +233,122 @@ export default function ManageAccountsModal(props: Props) {
                               <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM10 11V7a2 2 0 114 0v4"
                               />
                             </svg>
-                          }
-                        >
-                          <svg
-                            class="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM10 11V7a2 2 0 114 0v4"
-                            />
-                          </svg>
-                        </Show>
-                      </button>
-                    </Show>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(account)}
-                      class="p-1.5 text-fg-3 hover:text-fg transition-colors"
-                      aria-label={`Edit ${account.name}`}
-                    >
-                      <svg
-                        class="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(account.id)}
-                      disabled={deleteMutation.isPending}
-                      class="p-1.5 text-fg-3 hover:text-red-400 transition-colors disabled:opacity-50"
-                      aria-label={`Delete ${account.name}`}
-                    >
-                      <svg
-                        class="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                }
-              >
-                {/* Edit mode */}
-                <div class="bg-surface rounded-xl px-4 py-3 space-y-3">
-                  <input
-                    ref={editInputRef}
-                    type="text"
-                    value={editName()}
-                    onInput={(e) => setEditName(e.currentTarget.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSave();
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                    class="w-full bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
-                  />
-                  <div class="flex gap-1.5">
-                    <For each={ACCOUNT_TYPES}>
-                      {(t) => (
-                        <button
-                          type="button"
-                          onClick={() => setEditType(t)}
-                          class={cn(
-                            "flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors",
-                            editType() === t
-                              ? "bg-purple-600 text-white"
-                              : "bg-surface text-fg-2 hover:bg-surface-hover",
-                          )}
-                        >
-                          {t}
+                          </Show>
                         </button>
-                      )}
-                    </For>
+                      </Show>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(account)}
+                        class="p-1.5 text-fg-3 hover:text-fg transition-colors"
+                        aria-label={`Edit ${account.name}`}
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(account.id)}
+                        disabled={deleteMutation.isPending}
+                        class="p-1.5 text-fg-3 hover:text-red-400 transition-colors disabled:opacity-50"
+                        aria-label={`Delete ${account.name}`}
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  }
+                >
+                  {/* Edit mode */}
+                  <div class="bg-surface rounded-xl px-4 py-3 space-y-3">
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editName()}
+                      onInput={(e) => setEditName(e.currentTarget.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSave();
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      class="w-full bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                    <div class="flex gap-1.5">
+                      <For each={ACCOUNT_TYPES}>
+                        {(t) => (
+                          <button
+                            type="button"
+                            onClick={() => setEditType(t)}
+                            class={cn(
+                              "flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors",
+                              editType() === t
+                                ? "bg-purple-600 text-white"
+                                : "bg-surface text-fg-2 hover:bg-surface-hover",
+                            )}
+                          >
+                            {t}
+                          </button>
+                        )}
+                      </For>
+                    </div>
+                    <Show when={updateMutation.isError}>
+                      <p class="text-red-400 text-xs">
+                        Failed to update account.
+                      </p>
+                    </Show>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={updateMutation.isPending}
+                        class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {updateMutation.isPending ? "Saving..." : "Save"}
+                      </button>
+                    </div>
                   </div>
-                  <Show when={updateMutation.isError}>
-                    <p class="text-red-400 text-xs">
-                      Failed to update account.
-                    </p>
-                  </Show>
-                  <div class="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(null)}
-                      class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={updateMutation.isPending}
-                      class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      {updateMutation.isPending ? "Saving..." : "Save"}
-                    </button>
-                  </div>
-                </div>
-              </Show>
-            )}
-          </For>
-        </div>
+                </Show>
+              )}
+            </For>
+          </div>
 
-        <button
-          type="button"
-          onClick={props.onClose}
-          class="w-full mt-6 py-3 rounded-xl bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
-        >
-          Close
-        </button>
+          <button
+            type="button"
+            onClick={props.onClose}
+            class="w-full mt-6 py-3 rounded-xl bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
+          >
+            Close
+          </button>
         </div>
       )}
     </SlidePanel>

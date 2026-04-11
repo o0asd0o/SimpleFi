@@ -363,103 +363,82 @@ export default function TransactionSheet(props: Props) {
     >
       {(isDesktop) => (
         <div class="px-6 pt-4 pb-safe-sheet">
-        {/* Handle bar — mobile only */}
-        <Show when={!isDesktop()}>
-          <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
-        </Show>
+          {/* Handle bar — mobile only */}
+          <Show when={!isDesktop()}>
+            <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+          </Show>
 
-        <div class="flex bg-surface rounded-xl p-1 mb-4">
-          <button
-            type="button"
-            onClick={() => setMode("expense")}
-            class={cn(
-              "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "expense" ? "bg-purple-600 text-white" : "text-fg-3",
-            )}
-          >
-            Spent
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("income");
-              const selectedAcc = accounts().find((a) => a.id === accountId());
-              if (selectedAcc?.type === "credit") {
-                setAccountId(nonCreditOwnAccounts()[0]?.id ?? "");
-              }
-            }}
-            class={cn(
-              "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "income" ? "bg-blue-600 text-white" : "text-fg-3",
-            )}
-          >
-            Earned
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("transfer");
-              // Clear "From" if it's credit — can't transfer FROM credit card
-              if (
-                accounts().find((a) => a.id === accountId())?.type === "credit"
-              ) {
-                setAccountId(nonCreditOwnAccounts()[0]?.id ?? "");
-              }
-              // Do NOT clear credit "To" — credit is a valid transfer destination
-            }}
-            class={cn(
-              "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-              mode() === "transfer" ? "bg-cyan-500 text-white" : "text-fg-3",
-            )}
-          >
-            Transfer
-          </button>
-        </div>
+          <div class="flex bg-surface rounded-xl p-1 mb-4">
+            <button
+              type="button"
+              onClick={() => setMode("expense")}
+              class={cn(
+                "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                mode() === "expense" ? "bg-purple-600 text-white" : "text-fg-3",
+              )}
+            >
+              Spent
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("income");
+                const selectedAcc = accounts().find(
+                  (a) => a.id === accountId(),
+                );
+                if (selectedAcc?.type === "credit") {
+                  setAccountId(nonCreditOwnAccounts()[0]?.id ?? "");
+                }
+              }}
+              class={cn(
+                "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                mode() === "income" ? "bg-blue-600 text-white" : "text-fg-3",
+              )}
+            >
+              Earned
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("transfer");
+                // Clear "From" if it's credit — can't transfer FROM credit card
+                if (
+                  accounts().find((a) => a.id === accountId())?.type ===
+                  "credit"
+                ) {
+                  setAccountId(nonCreditOwnAccounts()[0]?.id ?? "");
+                }
+                // Do NOT clear credit "To" — credit is a valid transfer destination
+              }}
+              class={cn(
+                "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
+                mode() === "transfer" ? "bg-cyan-500 text-white" : "text-fg-3",
+              )}
+            >
+              Transfer
+            </button>
+          </div>
 
-        {/* Account selector */}
-        <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
-          {mode() === "transfer" ? "From" : "Account"}
-        </p>
-        <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-          <For
-            each={
-              mode() === "expense" ? expenseFromAccounts() : nonCreditAccounts()
-            }
-          >
-            {(acc) => (
-              <button
-                type="button"
-                onClick={() => setAccountId(acc.id)}
-                class={cn(
-                  "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                  accountId() === acc.id
-                    ? "bg-purple-600 text-white"
-                    : "bg-surface text-fg-2 hover:bg-surface-hover",
-                )}
-              >
-                {accountLabel(acc)}
-              </button>
-            )}
-          </For>
-        </div>
-
-        {/* To account (transfer mode only) */}
-        <Show when={mode() === "transfer"}>
+          {/* Account selector */}
           <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
-            {isPayingCreditCard() ? "Pay to" : "To"}
+            {mode() === "transfer" ? "From" : "Account"}
           </p>
           <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-            <For each={transferToAccounts()}>
+            <For
+              each={
+                mode() === "expense"
+                  ? expenseFromAccounts()
+                  : nonCreditAccounts()
+              }
+            >
               {(acc) => (
                 <button
                   type="button"
-                  onClick={() => setToAccountId(acc.id)}
+                  onClick={() => setAccountId(acc.id)}
                   class={cn(
                     "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                    toAccountId() === acc.id
-                      ? acc.type === "credit"
-                        ? "bg-purple-600 text-white"
-                        : "bg-cyan-500 text-white"
+                    accountId() === acc.id
+                      ? "bg-purple-600 text-white"
                       : "bg-surface text-fg-2 hover:bg-surface-hover",
                   )}
                 >
@@ -468,19 +447,132 @@ export default function TransactionSheet(props: Props) {
               )}
             </For>
           </div>
-        </Show>
 
-        {/* Category pills (hidden in transfer mode) */}
-        <Show when={mode() !== "transfer"}>
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-xs text-fg-3 uppercase tracking-wider">Category</p>
+          {/* To account (transfer mode only) */}
+          <Show when={mode() === "transfer"}>
+            <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
+              {isPayingCreditCard() ? "Pay to" : "To"}
+            </p>
+            <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+              <For each={transferToAccounts()}>
+                {(acc) => (
+                  <button
+                    type="button"
+                    onClick={() => setToAccountId(acc.id)}
+                    class={cn(
+                      "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                      toAccountId() === acc.id
+                        ? acc.type === "credit"
+                          ? "bg-purple-600 text-white"
+                          : "bg-cyan-500 text-white"
+                        : "bg-surface text-fg-2 hover:bg-surface-hover",
+                    )}
+                  >
+                    {accountLabel(acc)}
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+
+          {/* Category pills (hidden in transfer mode) */}
+          <Show when={mode() !== "transfer"}>
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs text-fg-3 uppercase tracking-wider">Category</p>
+              <button
+                type="button"
+                onClick={() => setShowManageCategories(true)}
+                class="p-1 text-fg-3 hover:text-fg transition-colors"
+              >
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+              <For each={filteredCategories()}>
+                {(cat) => (
+                  <button
+                    type="button"
+                    onClick={() => setCategoryId(cat.id)}
+                    class={cn(
+                      "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                      categoryId() === cat.id
+                        ? "bg-purple-600 text-white"
+                        : "bg-surface text-fg-2 hover:bg-surface-hover",
+                    )}
+                  >
+                    {cat.icon} {cat.name}
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+
+          <Show when={showManageCategories()}>
+            <ManageCategoriesModal
+              categoryType={mode() === "income" ? "income" : "expense"}
+              onClose={() => setShowManageCategories(false)}
+            />
+          </Show>
+
+          {/* Amount input */}
+          <label for="amount-input" class="sr-only">
+            Amount
+          </label>
+          <input
+            id="amount-input"
+            ref={inputRef}
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={formattedAmount()}
+            onKeyDown={handleAmountKeyDown}
+            onInput={handleAmountInput}
+            class="w-full text-6xl font-bold bg-transparent text-fg text-center outline-none mb-2 placeholder:text-fg-3/50"
+          />
+          <p class="text-center text-fg-3 text-sm mb-6">Enter amount</p>
+
+          {/* Description + Repeat */}
+          <div class="relative flex items-center gap-2 mb-6">
+            <input
+              type="text"
+              placeholder="Description (optional)"
+              value={description()}
+              onInput={(e) => setDescription(e.currentTarget.value)}
+              class="flex-1 min-w-0 bg-surface rounded-xl px-4 py-3 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
+            />
             <button
               type="button"
-              onClick={() => setShowManageCategories(true)}
-              class="p-1 text-fg-3 hover:text-fg transition-colors"
+              onClick={() => setShowRecurringModal(true)}
+              class={cn(
+                "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
+                isRecurring()
+                  ? "bg-purple-600/30 ring-1 ring-purple-500"
+                  : "bg-surface",
+              )}
+              aria-label="Set recurring"
             >
               <svg
-                class="w-4 h-4"
+                class={cn(
+                  "w-5 h-5",
+                  isRecurring() ? "text-purple-400" : "text-fg-3",
+                )}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -489,234 +581,149 @@ export default function TransactionSheet(props: Props) {
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
             </button>
           </div>
-          <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-            <For each={filteredCategories()}>
-              {(cat) => (
-                <button
-                  type="button"
-                  onClick={() => setCategoryId(cat.id)}
-                  class={cn(
-                    "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                    categoryId() === cat.id
-                      ? "bg-purple-600 text-white"
-                      : "bg-surface text-fg-2 hover:bg-surface-hover",
-                  )}
-                >
-                  {cat.icon} {cat.name}
-                </button>
-              )}
-            </For>
-          </div>
-        </Show>
 
-        <Show when={showManageCategories()}>
-          <ManageCategoriesModal
-            categoryType={mode() === "income" ? "income" : "expense"}
-            onClose={() => setShowManageCategories(false)}
-          />
-        </Show>
-
-        {/* Amount input */}
-        <label for="amount-input" class="sr-only">
-          Amount
-        </label>
-        <input
-          id="amount-input"
-          ref={inputRef}
-          type="text"
-          inputMode="decimal"
-          placeholder="0.00"
-          value={formattedAmount()}
-          onKeyDown={handleAmountKeyDown}
-          onInput={handleAmountInput}
-          class="w-full text-6xl font-bold bg-transparent text-fg text-center outline-none mb-2 placeholder:text-fg-3/50"
-        />
-        <p class="text-center text-fg-3 text-sm mb-6">Enter amount</p>
-
-        {/* Description + Repeat */}
-        <div class="relative flex items-center gap-2 mb-6">
-          <input
-            type="text"
-            placeholder="Description (optional)"
-            value={description()}
-            onInput={(e) => setDescription(e.currentTarget.value)}
-            class="flex-1 min-w-0 bg-surface rounded-xl px-4 py-3 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
-          />
-          <button
-            type="button"
-            onClick={() => setShowRecurringModal(true)}
-            class={cn(
-              "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
-              isRecurring()
-                ? "bg-purple-600/30 ring-1 ring-purple-500"
-                : "bg-surface",
-            )}
-            aria-label="Set recurring"
-          >
-            <svg
-              class={cn(
-                "w-5 h-5",
-                isRecurring() ? "text-purple-400" : "text-fg-3",
-              )}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
+          {/* Recurring modal */}
+          <Show when={showRecurringModal()}>
+            <div
+              class="fixed inset-0 bg-overlay z-[60] backdrop-blur-sm"
+              onClick={() => setShowRecurringModal(false)}
+            />
+            <div
+              class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter"
+              style={{ right: `${scrollbarOffset}px` }}
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+              <h3 class="text-fg font-semibold text-lg mb-6">Repeat</h3>
+
+              {/* Frequency pills */}
+              <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
+                Occurrence
+              </p>
+              <div class="flex gap-2 flex-wrap mb-6">
+                <For
+                  each={
+                    [
+                      { value: "daily", label: "Daily" },
+                      { value: "weekly", label: "Weekly" },
+                      { value: "biweekly", label: "Every 2 Weeks" },
+                      { value: "monthly", label: "Monthly" },
+                      { value: "yearly", label: "Yearly" },
+                    ] as { value: Frequency; label: string }[]
+                  }
+                >
+                  {(opt) => (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsRecurring(true);
+                        setFrequency(opt.value);
+                      }}
+                      class={cn(
+                        "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                        isRecurring() && frequency() === opt.value
+                          ? "bg-purple-600 text-white"
+                          : "bg-surface text-fg-2 hover:bg-surface-hover",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  )}
+                </For>
+              </div>
+
+              {/* Start date */}
+              <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
+                {editing() ? "Next due" : "Start date"}
+              </p>
+              <input
+                type="date"
+                value={startDate()}
+                onInput={(e) => setStartDate(e.currentTarget.value)}
+                class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-4"
               />
-            </svg>
-          </button>
-        </div>
 
-        {/* Recurring modal */}
-        <Show when={showRecurringModal()}>
-          <div
-            class="fixed inset-0 bg-overlay z-[60] backdrop-blur-sm"
-            onClick={() => setShowRecurringModal(false)}
-          />
-          <div
-            class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter"
-            style={{ right: `${scrollbarOffset}px` }}
-          >
-            <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
-            <h3 class="text-fg font-semibold text-lg mb-6">Repeat</h3>
+              {/* End date (optional) */}
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-xs text-fg-3 uppercase tracking-wider">
+                  End date
+                </p>
+                <Show when={endDate()}>
+                  <button
+                    type="button"
+                    onClick={() => setEndDate("")}
+                    class="text-xs text-purple-400"
+                  >
+                    Clear
+                  </button>
+                </Show>
+              </div>
+              <input
+                type="date"
+                value={endDate()}
+                onInput={(e) => setEndDate(e.currentTarget.value)}
+                min={startDate()}
+                placeholder="Indefinite"
+                class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-2"
+              />
+              <p class="text-xs text-fg-3 mb-6">
+                {endDate() ? "" : "No end date — repeats indefinitely"}
+              </p>
 
-            {/* Frequency pills */}
-            <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
-              Occurrence
-            </p>
-            <div class="flex gap-2 flex-wrap mb-6">
-              <For
-                each={
-                  [
-                    { value: "daily", label: "Daily" },
-                    { value: "weekly", label: "Weekly" },
-                    { value: "biweekly", label: "Every 2 Weeks" },
-                    { value: "monthly", label: "Monthly" },
-                    { value: "yearly", label: "Yearly" },
-                  ] as { value: Frequency; label: string }[]
-                }
-              >
-                {(opt) => (
+              {/* Actions */}
+              <div class="flex gap-3">
+                <Show when={isRecurring()}>
                   <button
                     type="button"
                     onClick={() => {
-                      setIsRecurring(true);
-                      setFrequency(opt.value);
+                      setIsRecurring(false);
+                      setShowRecurringModal(false);
                     }}
-                    class={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                      isRecurring() && frequency() === opt.value
-                        ? "bg-purple-600 text-white"
-                        : "bg-surface text-fg-2 hover:bg-surface-hover",
-                    )}
+                    class="flex-1 py-3 rounded-2xl bg-surface text-fg-2 font-medium text-sm"
                   >
-                    {opt.label}
+                    Turn Off
                   </button>
-                )}
-              </For>
-            </div>
-
-            {/* Start date */}
-            <p class="text-xs text-fg-3 uppercase tracking-wider mb-2">
-              {editing() ? "Next due" : "Start date"}
-            </p>
-            <input
-              type="date"
-              value={startDate()}
-              onInput={(e) => setStartDate(e.currentTarget.value)}
-              class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-4"
-            />
-
-            {/* End date (optional) */}
-            <div class="flex items-center justify-between mb-2">
-              <p class="text-xs text-fg-3 uppercase tracking-wider">End date</p>
-              <Show when={endDate()}>
+                </Show>
                 <button
                   type="button"
-                  onClick={() => setEndDate("")}
-                  class="text-xs text-purple-400"
+                  onClick={() => setShowRecurringModal(false)}
+                  class="flex-1 py-3 rounded-2xl bg-purple-600 text-white font-semibold text-sm"
                 >
-                  Clear
+                  Done
                 </button>
-              </Show>
+              </div>
             </div>
-            <input
-              type="date"
-              value={endDate()}
-              onInput={(e) => setEndDate(e.currentTarget.value)}
-              min={startDate()}
-              placeholder="Indefinite"
-              class="w-full bg-surface rounded-xl px-4 py-3 text-fg text-sm outline-none focus:ring-1 focus:ring-purple-500 mb-2"
-            />
-            <p class="text-xs text-fg-3 mb-6">
-              {endDate() ? "" : "No end date — repeats indefinitely"}
-            </p>
+          </Show>
 
-            {/* Actions */}
-            <div class="flex gap-3">
-              <Show when={isRecurring()}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsRecurring(false);
-                    setShowRecurringModal(false);
-                  }}
-                  class="flex-1 py-3 rounded-2xl bg-surface text-fg-2 font-medium text-sm"
-                >
-                  Turn Off
-                </button>
-              </Show>
-              <button
-                type="button"
-                onClick={() => setShowRecurringModal(false)}
-                class="flex-1 py-3 rounded-2xl bg-purple-600 text-white font-semibold text-sm"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </Show>
-
-        {/* Submit button */}
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={mutation.isPending}
-          class={cn(
-            "w-full py-4 rounded-2xl active:scale-95 text-white font-semibold text-lg transition-all disabled:opacity-50",
-            mode() === "expense"
-              ? "bg-purple-600 hover:bg-purple-500"
-              : mode() === "transfer"
-                ? "bg-cyan-500 hover:bg-cyan-400"
-                : "bg-blue-600 hover:bg-blue-500",
-          )}
-        >
-          {editing()
-            ? "Save Changes"
-            : mode() === "expense"
-              ? "Add Expense"
-              : mode() === "transfer"
-                ? isPayingCreditCard()
-                  ? "Pay Credit Card"
-                  : "Transfer"
-                : "Add Income"}
-        </button>
-      </div>
+          {/* Submit button */}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={mutation.isPending}
+            class={cn(
+              "w-full py-4 rounded-2xl active:scale-95 text-white font-semibold text-lg transition-all disabled:opacity-50",
+              mode() === "expense"
+                ? "bg-purple-600 hover:bg-purple-500"
+                : mode() === "transfer"
+                  ? "bg-cyan-500 hover:bg-cyan-400"
+                  : "bg-blue-600 hover:bg-blue-500",
+            )}
+          >
+            {editing()
+              ? "Save Changes"
+              : mode() === "expense"
+                ? "Add Expense"
+                : mode() === "transfer"
+                  ? isPayingCreditCard()
+                    ? "Pay Credit Card"
+                    : "Transfer"
+                  : "Add Income"}
+          </button>
+        </div>
       )}
     </SlidePanel>
   );

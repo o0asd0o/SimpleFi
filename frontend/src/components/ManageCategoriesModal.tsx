@@ -120,192 +120,198 @@ export default function ManageCategoriesModal(props: Props) {
   };
 
   return (
-    <SlidePanel onClose={props.onClose} ariaLabel="Manage categories" escapeClose={false}>
+    <SlidePanel
+      onClose={props.onClose}
+      ariaLabel="Manage categories"
+      escapeClose={false}
+    >
       {(isDesktop) => (
         <div class="px-6 pt-4 pb-safe-sheet">
-        <Show when={!isDesktop()}><div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" /></Show>
-        <h2 class="text-fg font-semibold text-xl text-center mb-6">
-          Manage {props.categoryType === "income" ? "Income" : "Expense"}{" "}
-          Categories
-        </h2>
+          <Show when={!isDesktop()}>
+            <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+          </Show>
+          <h2 class="text-fg font-semibold text-xl text-center mb-6">
+            Manage {props.categoryType === "income" ? "Income" : "Expense"}{" "}
+            Categories
+          </h2>
 
-        <Show when={deleteError()}>
-          <p class="text-red-400 text-sm text-center mb-4">{deleteError()}</p>
-        </Show>
+          <Show when={deleteError()}>
+            <p class="text-red-400 text-sm text-center mb-4">{deleteError()}</p>
+          </Show>
 
-        <div class="space-y-2">
-          <For each={filtered()}>
-            {(cat) => (
-              <Show
-                when={editingId() === cat.id}
-                fallback={
-                  <div class="flex items-center gap-3 bg-surface rounded-xl px-4 py-3 shadow-sm dark:shadow-none">
-                    <span class="text-lg flex-shrink-0">{cat.icon}</span>
-                    <p class="flex-1 min-w-0 text-sm font-medium text-fg truncate">
-                      {cat.name}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => startEdit(cat)}
-                      class="p-1.5 text-fg-3 hover:text-fg transition-colors"
-                    >
-                      <svg
-                        class="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
+          <div class="space-y-2">
+            <For each={filtered()}>
+              {(cat) => (
+                <Show
+                  when={editingId() === cat.id}
+                  fallback={
+                    <div class="flex items-center gap-3 bg-surface rounded-xl px-4 py-3 shadow-sm dark:shadow-none">
+                      <span class="text-lg flex-shrink-0">{cat.icon}</span>
+                      <p class="flex-1 min-w-0 text-sm font-medium text-fg truncate">
+                        {cat.name}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(cat)}
+                        class="p-1.5 text-fg-3 hover:text-fg transition-colors"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(cat.id)}
-                      disabled={deleteMut.isPending}
-                      class="p-1.5 text-fg-3 hover:text-red-400 transition-colors disabled:opacity-50"
-                      aria-label={`Delete ${cat.name}`}
-                    >
-                      <svg
-                        class="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(cat.id)}
+                        disabled={deleteMut.isPending}
+                        class="p-1.5 text-fg-3 hover:text-red-400 transition-colors disabled:opacity-50"
+                        aria-label={`Delete ${cat.name}`}
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  }
+                >
+                  {/* Edit mode */}
+                  <div class="bg-surface rounded-xl px-4 py-3 space-y-3">
+                    <div class="flex gap-2">
+                      <input
+                        type="text"
+                        value={editIcon()}
+                        onInput={(e) => setEditIcon(e.currentTarget.value)}
+                        class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500 placeholder:opacity-30"
+                        placeholder="💸"
+                      />
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editName()}
+                        onInput={(e) => setEditName(e.currentTarget.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSave();
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        class="flex-1 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
+                        placeholder="Category name"
+                      />
+                    </div>
+                    <Show when={updateMut.isError}>
+                      <p class="text-red-400 text-xs">
+                        Failed to update category.
+                      </p>
+                    </Show>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={updateMut.isPending}
+                        class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {updateMut.isPending ? "Saving..." : "Save"}
+                      </button>
+                    </div>
                   </div>
-                }
-              >
-                {/* Edit mode */}
-                <div class="bg-surface rounded-xl px-4 py-3 space-y-3">
-                  <div class="flex gap-2">
-                    <input
-                      type="text"
-                      value={editIcon()}
-                      onInput={(e) => setEditIcon(e.currentTarget.value)}
-                      class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500 placeholder:opacity-30"
-                      placeholder="💸"
-                    />
-                    <input
-                      ref={editInputRef}
-                      type="text"
-                      value={editName()}
-                      onInput={(e) => setEditName(e.currentTarget.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSave();
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                      class="flex-1 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
-                      placeholder="Category name"
-                    />
-                  </div>
-                  <Show when={updateMut.isError}>
-                    <p class="text-red-400 text-xs">
-                      Failed to update category.
-                    </p>
-                  </Show>
-                  <div class="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(null)}
-                      class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={updateMut.isPending}
-                      class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      {updateMut.isPending ? "Saving..." : "Save"}
-                    </button>
-                  </div>
-                </div>
-              </Show>
-            )}
-          </For>
-        </div>
-
-        {/* Add new category */}
-        <Show
-          when={showAdd()}
-          fallback={
-            <button
-              type="button"
-              onClick={() => {
-                setShowAdd(true);
-                setTimeout(() => addInputRef?.focus(), 0);
-              }}
-              class="w-full mt-3 py-3 rounded-xl border border-dashed border-dim text-fg-3 text-sm font-medium hover:border-dim-strong hover:text-fg-2 transition-colors"
-            >
-              + Add Category
-            </button>
-          }
-        >
-          <div class="bg-surface rounded-xl px-4 py-3 mt-3 space-y-3">
-            <div class="flex gap-2">
-              <input
-                type="text"
-                value={addIcon()}
-                onInput={(e) => setAddIcon(e.currentTarget.value)}
-                class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500 placeholder:opacity-30"
-                placeholder="💸"
-              />
-              <input
-                ref={addInputRef}
-                type="text"
-                value={addName()}
-                onInput={(e) => setAddName(e.currentTarget.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAdd();
-                  if (e.key === "Escape") setShowAdd(false);
-                }}
-                class="flex-1 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
-                placeholder="Category name"
-              />
-            </div>
-            <Show when={createMut.isError}>
-              <p class="text-red-400 text-xs">Failed to create category.</p>
-            </Show>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAdd(false)}
-                class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={createMut.isPending}
-                class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                {createMut.isPending ? "Adding..." : "Add"}
-              </button>
-            </div>
+                </Show>
+              )}
+            </For>
           </div>
-        </Show>
 
-        <button
-          type="button"
-          onClick={props.onClose}
-          class="w-full mt-6 py-3 rounded-xl bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
-        >
-          Close
-        </button>
+          {/* Add new category */}
+          <Show
+            when={showAdd()}
+            fallback={
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAdd(true);
+                  setTimeout(() => addInputRef?.focus(), 0);
+                }}
+                class="w-full mt-3 py-3 rounded-xl border border-dashed border-dim text-fg-3 text-sm font-medium hover:border-dim-strong hover:text-fg-2 transition-colors"
+              >
+                + Add Category
+              </button>
+            }
+          >
+            <div class="bg-surface rounded-xl px-4 py-3 mt-3 space-y-3">
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  value={addIcon()}
+                  onInput={(e) => setAddIcon(e.currentTarget.value)}
+                  class="w-14 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm text-center outline-none focus:ring-1 focus:ring-purple-500 placeholder:opacity-30"
+                  placeholder="💸"
+                />
+                <input
+                  ref={addInputRef}
+                  type="text"
+                  value={addName()}
+                  onInput={(e) => setAddName(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAdd();
+                    if (e.key === "Escape") setShowAdd(false);
+                  }}
+                  class="flex-1 bg-surface-hover rounded-lg px-3 py-2 text-fg text-sm placeholder:text-fg-4 outline-none focus:ring-1 focus:ring-purple-500"
+                  placeholder="Category name"
+                />
+              </div>
+              <Show when={createMut.isError}>
+                <p class="text-red-400 text-xs">Failed to create category.</p>
+              </Show>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdd(false)}
+                  class="flex-1 py-2 rounded-lg bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={createMut.isPending}
+                  class="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {createMut.isPending ? "Adding..." : "Add"}
+                </button>
+              </div>
+            </div>
+          </Show>
+
+          <button
+            type="button"
+            onClick={props.onClose}
+            class="w-full mt-6 py-3 rounded-xl bg-surface text-fg-2 text-sm font-medium hover:bg-surface-hover transition-colors"
+          >
+            Close
+          </button>
         </div>
       )}
     </SlidePanel>

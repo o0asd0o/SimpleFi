@@ -112,165 +112,171 @@ export default function App() {
             />
           </Show>
 
-        <div
-          class={isDesktop()
-            ? "flex-1 min-h-screen bg-app-bg text-fg relative overflow-y-auto"
-            : "min-h-screen bg-app-bg text-fg max-w-md mx-auto relative"}
-          style={{
-            "padding-bottom": isDesktop() ? undefined : "calc(7rem + env(safe-area-inset-bottom, 0px))",
-          }}
-        >
-          <BalanceHeader
-            onMenuOpen={() => setIsSidebarOpen(true)}
-            onHomeClick={() => setActiveView("home")}
-            activePartnershipId={activePartnershipId()}
-            hideMenu={isDesktop()}
-          />
-
-          {/* Context switcher — shown for all views when in a partnership */}
-          <ContextSwitcher
-            activePartnershipId={activePartnershipId()}
-            onChange={setActivePartnershipId}
-          />
-
-          <Show when={activeView() === "home"}>
-            <AccountStrip
-              activePartnershipId={activePartnershipId()}
-              onPayCredit={(id) => {
-                setEditingTx(null);
-                setIncomeAccountTarget(null);
-                setCreditPayTarget(id);
-                setIsSheetOpen(true);
-              }}
-              onAccountTap={(id) => {
-                setEditingTx(null);
-                setCreditPayTarget(null);
-                setIncomeAccountTarget(id);
-                setIsSheetOpen(true);
-              }}
-              onSetAccountBudget={(id) => {
-                setEditingBudget(null);
-                setBudgetInitialAccountId(id);
-                setIsBudgetSheetOpen(true);
-              }}
-            />
-            <RecentList
-              activePartnershipId={activePartnershipId()}
-              onEdit={(tx) => {
-                setEditingTx(tx);
-                setIsSheetOpen(true);
-              }}
-              onPayCredit={(id) => {
-                setEditingTx(null);
-                setCreditPayTarget(id);
-                setIsSheetOpen(true);
-              }}
-            />
-          </Show>
-
-          <Show when={activeView() === "analytics"}>
-            <StatBars activePartnershipId={activePartnershipId()} />
-          </Show>
-
-          <Show when={activeView() === "recurring"}>
-            <RecurringList />
-          </Show>
-
-          <Show when={activeView() === "partnerships"}>
-            <PartnershipView />
-          </Show>
-
-          <Show when={activeView() === "budgets"}>
-            <BudgetView
-              activePartnershipId={activePartnershipId()}
-              onAddBudget={() => {
-                setEditingBudget(null);
-                setIsBudgetSheetOpen(true);
-              }}
-              onEditBudget={(bp) => {
-                setEditingBudget(bp);
-                setIsBudgetSheetOpen(true);
-              }}
-            />
-          </Show>
-
-          {/* FAB — hidden on partnerships and budgets views */}
-          <Show
-            when={activeView() !== "partnerships" && activeView() !== "budgets"}
+          <div
+            class={
+              isDesktop()
+                ? "flex-1 min-h-screen bg-app-bg text-fg relative overflow-y-auto"
+                : "min-h-screen bg-app-bg text-fg max-w-md mx-auto relative"
+            }
+            style={{
+              "padding-bottom": isDesktop()
+                ? undefined
+                : "calc(7rem + env(safe-area-inset-bottom, 0px))",
+            }}
           >
-            <button
-              type="button"
-              aria-label="Add transaction"
-              onClick={() => {
-                setEditingTx(null);
-                setIsSheetOpen(true);
-              }}
-              class="fixed right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
-              style={{
-                bottom: "calc(2rem + env(safe-area-inset-bottom, 0px))",
-              }}
-            >
-              +
-            </button>
-          </Show>
-
-          {/* Budget sheet */}
-          <Show when={isBudgetSheetOpen()}>
-            <BudgetSheet
-              onClose={() => {
-                setIsBudgetSheetOpen(false);
-                setEditingBudget(null);
-                setBudgetInitialAccountId(undefined);
-              }}
-              editBudget={editingBudget() ?? undefined}
-              initialAccountId={budgetInitialAccountId()}
+            <BalanceHeader
+              onMenuOpen={() => setIsSidebarOpen(true)}
+              onHomeClick={() => setActiveView("home")}
               activePartnershipId={activePartnershipId()}
+              hideMenu={isDesktop()}
             />
-          </Show>
 
-          {/* Transaction sheet */}
-          <Show when={isSheetOpen()}>
-            <TransactionSheet
-              editTransaction={editingTx() ?? undefined}
+            {/* Context switcher — shown for all views when in a partnership */}
+            <ContextSwitcher
               activePartnershipId={activePartnershipId()}
-              initialMode={
-                creditPayTarget()
-                  ? "transfer"
-                  : incomeAccountTarget()
-                    ? "income"
-                    : undefined
+              onChange={setActivePartnershipId}
+            />
+
+            <Show when={activeView() === "home"}>
+              <AccountStrip
+                activePartnershipId={activePartnershipId()}
+                onPayCredit={(id) => {
+                  setEditingTx(null);
+                  setIncomeAccountTarget(null);
+                  setCreditPayTarget(id);
+                  setIsSheetOpen(true);
+                }}
+                onAccountTap={(id) => {
+                  setEditingTx(null);
+                  setCreditPayTarget(null);
+                  setIncomeAccountTarget(id);
+                  setIsSheetOpen(true);
+                }}
+                onSetAccountBudget={(id) => {
+                  setEditingBudget(null);
+                  setBudgetInitialAccountId(id);
+                  setIsBudgetSheetOpen(true);
+                }}
+              />
+              <RecentList
+                activePartnershipId={activePartnershipId()}
+                onEdit={(tx) => {
+                  setEditingTx(tx);
+                  setIsSheetOpen(true);
+                }}
+                onPayCredit={(id) => {
+                  setEditingTx(null);
+                  setCreditPayTarget(id);
+                  setIsSheetOpen(true);
+                }}
+              />
+            </Show>
+
+            <Show when={activeView() === "analytics"}>
+              <StatBars activePartnershipId={activePartnershipId()} />
+            </Show>
+
+            <Show when={activeView() === "recurring"}>
+              <RecurringList />
+            </Show>
+
+            <Show when={activeView() === "partnerships"}>
+              <PartnershipView />
+            </Show>
+
+            <Show when={activeView() === "budgets"}>
+              <BudgetView
+                activePartnershipId={activePartnershipId()}
+                onAddBudget={() => {
+                  setEditingBudget(null);
+                  setIsBudgetSheetOpen(true);
+                }}
+                onEditBudget={(bp) => {
+                  setEditingBudget(bp);
+                  setIsBudgetSheetOpen(true);
+                }}
+              />
+            </Show>
+
+            {/* FAB — hidden on partnerships and budgets views */}
+            <Show
+              when={
+                activeView() !== "partnerships" && activeView() !== "budgets"
               }
-              initialAccountId={incomeAccountTarget() ?? undefined}
-              initialToAccountId={creditPayTarget() ?? undefined}
-              onClose={() => {
-                setIsSheetOpen(false);
-                setEditingTx(null);
-                setCreditPayTarget(null);
-                setIncomeAccountTarget(null);
-              }}
-            />
-          </Show>
+            >
+              <button
+                type="button"
+                aria-label="Add transaction"
+                onClick={() => {
+                  setEditingTx(null);
+                  setIsSheetOpen(true);
+                }}
+                class="fixed right-6 w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white shadow-lg shadow-purple-900/50 flex items-center justify-center text-2xl font-light transition-all"
+                style={{
+                  bottom: "calc(2rem + env(safe-area-inset-bottom, 0px))",
+                }}
+              >
+                +
+              </button>
+            </Show>
 
-          {/* Sidebar menu — mobile overlay */}
-          <Show when={isSidebarOpen() && !isDesktop()}>
-            <SidebarMenu
-              activeView={activeView()}
-              onNavigate={setActiveView}
-              onLogout={handleLogout}
-              onClose={() => setIsSidebarOpen(false)}
-              theme={theme()}
-              onThemeChange={(t: ThemeMode) => setTheme(t)}
-              activePartnershipId={activePartnershipId()}
-            />
-          </Show>
+            {/* Budget sheet */}
+            <Show when={isBudgetSheetOpen()}>
+              <BudgetSheet
+                onClose={() => {
+                  setIsBudgetSheetOpen(false);
+                  setEditingBudget(null);
+                  setBudgetInitialAccountId(undefined);
+                }}
+                editBudget={editingBudget() ?? undefined}
+                initialAccountId={budgetInitialAccountId()}
+                activePartnershipId={activePartnershipId()}
+              />
+            </Show>
 
-          <Show when={passphrase()}>
-            <PassphraseModal
-              passphrase={passphrase()!}
-              onConfirm={() => setPassphrase(null)}
-            />
-          </Show>
-        </div>
+            {/* Transaction sheet */}
+            <Show when={isSheetOpen()}>
+              <TransactionSheet
+                editTransaction={editingTx() ?? undefined}
+                activePartnershipId={activePartnershipId()}
+                initialMode={
+                  creditPayTarget()
+                    ? "transfer"
+                    : incomeAccountTarget()
+                      ? "income"
+                      : undefined
+                }
+                initialAccountId={incomeAccountTarget() ?? undefined}
+                initialToAccountId={creditPayTarget() ?? undefined}
+                onClose={() => {
+                  setIsSheetOpen(false);
+                  setEditingTx(null);
+                  setCreditPayTarget(null);
+                  setIncomeAccountTarget(null);
+                }}
+              />
+            </Show>
+
+            {/* Sidebar menu — mobile overlay */}
+            <Show when={isSidebarOpen() && !isDesktop()}>
+              <SidebarMenu
+                activeView={activeView()}
+                onNavigate={setActiveView}
+                onLogout={handleLogout}
+                onClose={() => setIsSidebarOpen(false)}
+                theme={theme()}
+                onThemeChange={(t: ThemeMode) => setTheme(t)}
+                activePartnershipId={activePartnershipId()}
+              />
+            </Show>
+
+            <Show when={passphrase()}>
+              <PassphraseModal
+                passphrase={passphrase()!}
+                onConfirm={() => setPassphrase(null)}
+              />
+            </Show>
+          </div>
         </div>
 
         {/* Update toast */}
