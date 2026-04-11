@@ -44,6 +44,7 @@ func HandleListTransactions(db *sql.DB) http.HandlerFunc {
 			AccountID:  r.URL.Query().Get("account_id"),
 			CategoryID: r.URL.Query().Get("category_id"),
 			SortDir:    r.URL.Query().Get("sort"),
+			Type:       r.URL.Query().Get("type"),
 		}
 
 		page, err := model.List(db, allIDs, userID, limit, cursor, filters)

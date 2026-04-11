@@ -108,6 +108,15 @@ input[type="number"] {
   }
 }
 
+@keyframes panel-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes sidebar-enter {
   from {
     transform: translateX(100%);
@@ -129,6 +138,11 @@ input[type="number"] {
 @media (prefers-reduced-motion: no-preference) {
   .sheet-enter {
     animation: slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .panel-enter {
+    animation: panel-slide-in 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
   }
 
   .sidebar-panel-enter {
