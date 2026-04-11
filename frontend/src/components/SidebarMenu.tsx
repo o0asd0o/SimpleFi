@@ -14,15 +14,12 @@ type Props = {
   theme: ThemeMode;
   onThemeChange: (t: ThemeMode) => void;
   activePartnershipId?: string | null;
+  /** When true, renders as a static sidebar (no overlay/fixed/scroll-lock). */
+  inline?: boolean;
 };
 
 export default function SidebarMenu(props: Props) {
   const [isExporting, setIsExporting] = createSignal(false);
-  const scrollbarOffset = Math.max(
-    window.innerWidth - document.documentElement.clientWidth,
-    0,
-  );
-  const previousBodyOverflow = document.body.style.overflow;
 
   const invitationsQuery = createQuery(() => ({
     queryKey: ["invitations"],
@@ -32,43 +29,45 @@ export default function SidebarMenu(props: Props) {
 
   const pendingCount = () => invitationsQuery.data?.length ?? 0;
 
-  onMount(() => {
-    document.body.style.overflow = "hidden";
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") props.onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    onCleanup(() => window.removeEventListener("keydown", onKeyDown));
-  });
+  // Overlay mode only: scroll lock + Escape
+  if (!props.inline) {
+    const scrollbarOffset = Math.max(
+      window.innerWidth - document.documentElement.clientWidth,
+      0,
+    );
+    const previousBodyOverflow = document.body.style.overflow;
 
-  onCleanup(() => {
-    document.body.style.overflow = previousBodyOverflow;
-  });
+    onMount(() => {
+      document.body.style.overflow = "hidden";
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") props.onClose();
+      };
+      window.addEventListener("keydown", onKeyDown);
+      onCleanup(() => window.removeEventListener("keydown", onKeyDown));
+    });
+
+    onCleanup(() => {
+      document.body.style.overflow = previousBodyOverflow;
+    });
+  }
 
   const handleNav = (view: ViewType) => {
     props.onNavigate(view);
-    props.onClose();
+    if (!props.inline) props.onClose();
   };
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        class={cn(
-          "fixed inset-0 z-40 bg-overlay backdrop-blur-sm sidebar-backdrop-enter",
-        )}
-        onClick={props.onClose}
-        aria-hidden="true"
-      />
-
-      {/* Sidebar */}
-      <nav
-        role="dialog"
-        aria-modal="true"
-        aria-label="Navigation menu"
-        class="fixed inset-y-0 z-50 flex w-64 flex-col bg-sheet-bg sidebar-panel-enter"
-        style={{ right: `${scrollbarOffset}px` }}
-      >
+  const sidebarContent = (
+    <nav
+      role={props.inline ? "navigation" : "dialog"}
+      aria-modal={props.inline ? undefined : "true"}
+      aria-label="Navigation menu"
+      class={cn(
+        "flex flex-col bg-sheet-bg",
+        props.inline
+          ? "w-64 h-full border-r border-dim"
+          : "fixed inset-y-0 right-0 z-50 w-64 sidebar-panel-enter",
+      )}
+    >
         {/* Header */}
         <div
           class="px-6 pb-6 border-b border-dim"
@@ -359,6 +358,18 @@ export default function SidebarMenu(props: Props) {
           </button>
         </div>
       </nav>
+  );
+
+  if (props.inline) return sidebarContent;
+
+  return (
+    <>
+      <div
+        class="fixed inset-0 z-40 bg-overlay backdrop-blur-sm sidebar-backdrop-enter"
+        onClick={props.onClose}
+        aria-hidden="true"
+      />
+      {sidebarContent}
     </>
   );
 }

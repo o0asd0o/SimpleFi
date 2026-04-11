@@ -28,6 +28,7 @@ type BalanceHeaderProps = {
   onMenuOpen: () => void;
   onHomeClick: () => void;
   activePartnershipId: string | null;
+  hideMenu?: boolean;
 };
 
 export default function BalanceHeader(props: BalanceHeaderProps) {
@@ -109,7 +110,7 @@ export default function BalanceHeader(props: BalanceHeaderProps) {
         <button
           type="button"
           onClick={props.onMenuOpen}
-          class="p-1.5 -mr-1.5 text-fg-2 hover:text-fg transition-colors"
+          class={`p-1.5 -mr-1.5 text-fg-2 hover:text-fg transition-colors${props.hideMenu ? " hidden" : ""}`}
           aria-label="Open menu"
         >
           <svg

@@ -30,6 +30,7 @@ import {
 import { clsx as cn } from "clsx";
 import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 import ManageCategoriesModal from "./ManageCategoriesModal";
+import SlidePanel from "./SlidePanel";
 
 type Props = {
   onClose: () => void;
@@ -50,7 +51,6 @@ const formQueryOptions = {
 };
 
 export default function TransactionSheet(props: Props) {
-  const scrollbarOffset = getScrollbarOffset();
   const editing = () => props.editTransaction;
   const [amount, setAmount] = createSignal(editing()?.amount?.toString() ?? "");
   const [categoryId, setCategoryId] = createSignal(
@@ -275,7 +275,6 @@ export default function TransactionSheet(props: Props) {
     unlockBodyScroll = lockBodyScroll();
     inputRef?.focus();
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") props.onClose();
       if (e.key === "Enter") handleSubmit();
     };
     window.addEventListener("keydown", onKeyDown);
@@ -358,24 +357,16 @@ export default function TransactionSheet(props: Props) {
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
-        onClick={props.onClose}
-        aria-hidden="true"
-      />
-
-      {/* Sheet */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={editing() ? "Edit transaction" : "Add transaction"}
-        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter max-h-[90vh] overflow-y-auto"
-        style={{ right: `${scrollbarOffset}px` }}
-      >
-        {/* Handle bar */}
-        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+    <SlidePanel
+      onClose={props.onClose}
+      ariaLabel={editing() ? "Edit transaction" : "Add transaction"}
+    >
+      {(isDesktop) => (
+        <div class="px-6 pt-4 pb-safe-sheet">
+        {/* Handle bar — mobile only */}
+        <Show when={!isDesktop()}>
+          <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+        </Show>
 
         <div class="flex bg-surface rounded-xl p-1 mb-4">
           <button
@@ -726,6 +717,7 @@ export default function TransactionSheet(props: Props) {
                 : "Add Income"}
         </button>
       </div>
-    </>
+      )}
+    </SlidePanel>
   );
 }

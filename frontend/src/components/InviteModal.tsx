@@ -1,6 +1,7 @@
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { createMutation } from "@tanstack/solid-query";
 import { inviteToPartnership } from "../lib/api";
+import SlidePanel from "./SlidePanel";
 
 type Props = {
   partnershipId: string;
@@ -31,16 +32,10 @@ export default function InviteModal(props: Props) {
   };
 
   return (
-    <>
-      <div
-        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
-        onClick={props.onClose}
-        aria-hidden="true"
-      />
-
-      {/* Sheet */}
-      <div class="fixed bottom-0 inset-x-0 z-50 bg-sheet-bg rounded-t-2xl p-6 pb-safe-sheet max-w-md mx-auto">
-        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+    <SlidePanel onClose={props.onClose} ariaLabel="Invite someone" maxWidth="max-w-md">
+      {(isDesktop) => (
+        <div class="p-6 pb-safe-sheet">
+        <Show when={!isDesktop()}><div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" /></Show>
 
         <h2 class="text-base font-semibold text-fg mb-4">Invite someone</h2>
 
@@ -73,7 +68,8 @@ export default function InviteModal(props: Props) {
             </button>
           </div>
         </form>
-      </div>
-    </>
+        </div>
+      )}
+    </SlidePanel>
   );
 }

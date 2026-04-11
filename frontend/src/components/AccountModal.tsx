@@ -2,7 +2,7 @@ import { createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { createMutation, useQueryClient } from "@tanstack/solid-query";
 import { createAccount, CreateAccountInput } from "../lib/api";
 import { clsx as cn } from "clsx";
-import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
+import SlidePanel from "./SlidePanel";
 
 type Props = {
   onClose: () => void;
@@ -16,27 +16,15 @@ const ACCOUNT_TYPES: CreateAccountInput["type"][] = [
 ];
 
 export default function AccountModal(props: Props) {
-  const scrollbarOffset = getScrollbarOffset();
   const [name, setName] = createSignal("");
   const [accountType, setAccountType] =
     createSignal<CreateAccountInput["type"]>("savings");
   const [initialBalance, setInitialBalance] = createSignal("0");
   let inputRef: HTMLInputElement | undefined;
-  let unlockBodyScroll = () => {};
   const queryClient = useQueryClient();
 
   onMount(() => {
-    unlockBodyScroll = lockBodyScroll();
     inputRef?.focus();
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") props.onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    onCleanup(() => window.removeEventListener("keydown", onKeyDown));
-  });
-
-  onCleanup(() => {
-    unlockBodyScroll();
   });
 
   const mutation = createMutation(() => ({
@@ -61,23 +49,15 @@ export default function AccountModal(props: Props) {
   };
 
   return (
-    <>
-      <div
-        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
-        onClick={props.onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Add account"
-        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter max-w-md mx-auto"
-        style={{ right: `${scrollbarOffset}px` }}
-      >
-        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
-        <h2 class="text-fg font-semibold text-xl text-center mb-6">
-          New Account
-        </h2>
+    <SlidePanel onClose={props.onClose} ariaLabel="Add account">
+      {(isDesktop) => (
+        <div class="px-6 pt-4 pb-safe-sheet">
+          <Show when={!isDesktop()}>
+            <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+          </Show>
+          <h2 class="text-fg font-semibold text-xl text-center mb-6">
+            New Account
+          </h2>
 
         <label class="text-xs text-fg-3 uppercase tracking-wider mb-2 block">
           Account Name
@@ -149,7 +129,8 @@ export default function AccountModal(props: Props) {
         >
           {mutation.isPending ? "Creating…" : "Create Account"}
         </button>
-      </div>
-    </>
+        </div>
+      )}
+    </SlidePanel>
   );
 }

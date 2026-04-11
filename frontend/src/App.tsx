@@ -7,6 +7,7 @@ import {
 } from "./lib/api";
 import { createThemeSignal, type ThemeMode } from "./lib/theme";
 import { setSheetOpen } from "./lib/sw-update";
+import { createIsDesktop } from "./lib/media";
 
 // Eager — always visible or always-present UI
 import BalanceHeader from "./components/BalanceHeader";
@@ -27,6 +28,7 @@ const BudgetSheet = lazy(() => import("./components/BudgetSheet"));
 
 export default function App() {
   const [theme, setTheme] = createThemeSignal();
+  const isDesktop = createIsDesktop();
   const [showUpdateToast, setShowUpdateToast] = createSignal(false);
   const [token, setToken] = createSignal(localStorage.getItem("token"));
   const [passphrase, setPassphrase] = createSignal<string | null>(null);
@@ -95,16 +97,34 @@ export default function App() {
         when={token()}
         fallback={<LoginScreen onAuthSuccess={handleAuthSuccess} />}
       >
+        <div class={isDesktop() ? "flex h-screen bg-app-bg" : ""}>
+          {/* Desktop permanent sidebar */}
+          <Show when={isDesktop()}>
+            <SidebarMenu
+              inline
+              activeView={activeView()}
+              onNavigate={setActiveView}
+              onLogout={handleLogout}
+              onClose={() => {}}
+              theme={theme()}
+              onThemeChange={(t: ThemeMode) => setTheme(t)}
+              activePartnershipId={activePartnershipId()}
+            />
+          </Show>
+
         <div
-          class="min-h-screen bg-app-bg text-fg max-w-md mx-auto relative"
+          class={isDesktop()
+            ? "flex-1 min-h-screen bg-app-bg text-fg relative overflow-y-auto"
+            : "min-h-screen bg-app-bg text-fg max-w-md mx-auto relative"}
           style={{
-            "padding-bottom": "calc(7rem + env(safe-area-inset-bottom, 0px))",
+            "padding-bottom": isDesktop() ? undefined : "calc(7rem + env(safe-area-inset-bottom, 0px))",
           }}
         >
           <BalanceHeader
             onMenuOpen={() => setIsSidebarOpen(true)}
             onHomeClick={() => setActiveView("home")}
             activePartnershipId={activePartnershipId()}
+            hideMenu={isDesktop()}
           />
 
           {/* Context switcher — shown for all views when in a partnership */}
@@ -231,8 +251,8 @@ export default function App() {
             />
           </Show>
 
-          {/* Sidebar menu */}
-          <Show when={isSidebarOpen()}>
+          {/* Sidebar menu — mobile overlay */}
+          <Show when={isSidebarOpen() && !isDesktop()}>
             <SidebarMenu
               activeView={activeView()}
               onNavigate={setActiveView}
@@ -244,13 +264,13 @@ export default function App() {
             />
           </Show>
 
-          {/* Passphrase modal (shown once after registration) */}
           <Show when={passphrase()}>
             <PassphraseModal
               passphrase={passphrase()!}
               onConfirm={() => setPassphrase(null)}
             />
           </Show>
+        </div>
         </div>
 
         {/* Update toast */}

@@ -15,7 +15,7 @@ import {
   type CreateAccountInput,
 } from "../lib/api";
 import { clsx as cn } from "clsx";
-import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
+import SlidePanel from "./SlidePanel";
 
 type Props = {
   onClose: () => void;
@@ -30,14 +30,12 @@ const ACCOUNT_TYPES: CreateAccountInput["type"][] = [
 ];
 
 export default function ManageAccountsModal(props: Props) {
-  const scrollbarOffset = getScrollbarOffset();
   const [editingId, setEditingId] = createSignal<string | null>(null);
   const [editName, setEditName] = createSignal("");
   const [editType, setEditType] =
     createSignal<CreateAccountInput["type"]>("cash");
   const [deleteError, setDeleteError] = createSignal<string | null>(null);
   let editInputRef: HTMLInputElement | undefined;
-  let unlockBodyScroll = () => {};
   const queryClient = useQueryClient();
 
   const accountsQuery = createQuery(() => ({
@@ -67,7 +65,6 @@ export default function ManageAccountsModal(props: Props) {
   };
 
   onMount(() => {
-    unlockBodyScroll = lockBodyScroll();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (editingId()) {
@@ -79,10 +76,6 @@ export default function ManageAccountsModal(props: Props) {
     };
     window.addEventListener("keydown", onKeyDown);
     onCleanup(() => window.removeEventListener("keydown", onKeyDown));
-  });
-
-  onCleanup(() => {
-    unlockBodyScroll();
   });
 
   const updateMutation = createMutation(() => ({
@@ -143,20 +136,10 @@ export default function ManageAccountsModal(props: Props) {
     );
 
   return (
-    <>
-      <div
-        class="fixed inset-0 bg-overlay z-40 backdrop-blur-sm"
-        onClick={props.onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Manage accounts"
-        class="fixed inset-x-0 bottom-0 z-50 bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter max-w-md mx-auto max-h-[80vh] overflow-y-auto"
-        style={{ right: `${scrollbarOffset}px` }}
-      >
-        <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
+    <SlidePanel onClose={props.onClose} ariaLabel="Manage accounts" escapeClose={false}>
+      {(isDesktop) => (
+        <div class="px-6 pt-4 pb-safe-sheet">
+        <Show when={!isDesktop()}><div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" /></Show>
         <h2 class="text-fg font-semibold text-xl text-center mb-6">
           Manage Accounts
         </h2>
@@ -360,7 +343,8 @@ export default function ManageAccountsModal(props: Props) {
         >
           Close
         </button>
-      </div>
-    </>
+        </div>
+      )}
+    </SlidePanel>
   );
 }

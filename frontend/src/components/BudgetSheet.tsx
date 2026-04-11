@@ -20,8 +20,8 @@ import {
   type BudgetProgress,
   type CreateBudgetInput,
 } from "../lib/api";
-import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 import { createSwipeHandlers } from "../lib/swipe";
+import SlidePanel from "./SlidePanel";
 
 type PeriodType = "month" | "year" | "custom";
 
@@ -55,9 +55,7 @@ const FORM_OPTIONS = {
 };
 
 export default function BudgetSheet(props: Props) {
-  const scrollbarOffset = getScrollbarOffset();
   const editing = () => props.editBudget;
-  let unlockBodyScroll = () => {};
   let panelRef: HTMLDivElement | undefined;
 
   const [name, setName] = createSignal(editing()?.name ?? "");
@@ -154,8 +152,7 @@ export default function BudgetSheet(props: Props) {
   };
 
   onMount(() => {
-    unlockBodyScroll = lockBodyScroll();
-    // Swipe down to close
+    // Swipe down to close (mobile only)
     if (panelRef) {
       const handlers = createSwipeHandlers({ onSwipeDown: props.onClose });
       panelRef.addEventListener("touchstart", handlers.onTouchStart, {
@@ -171,39 +168,18 @@ export default function BudgetSheet(props: Props) {
         panelRef?.removeEventListener("touchend", handlers.onTouchEnd);
       });
     }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") props.onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    onCleanup(() => window.removeEventListener("keydown", onKey));
-  });
-
-  onCleanup(() => {
-    unlockBodyScroll();
   });
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        class="fixed inset-0 z-40 bg-overlay backdrop-blur-sm"
-        onClick={props.onClose}
-        aria-hidden="true"
-      />
-
-      {/* Sheet panel */}
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={editing() ? "Edit budget" : "New budget"}
-        class="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg bg-sheet-bg rounded-t-2xl overflow-hidden sheet-enter"
-        style={{ right: `${scrollbarOffset}px`, left: `${scrollbarOffset}px` }}
-      >
-        {/* Drag handle */}
-        <div class="flex justify-center pt-3 pb-1">
-          <div class="w-10 h-1 rounded-full bg-white/20" />
-        </div>
+    <SlidePanel onClose={props.onClose} ariaLabel={editing() ? "Edit budget" : "New budget"} maxWidth="max-w-lg">
+      {(isDesktop) => (
+      <div ref={panelRef}>
+        {/* Drag handle — mobile only */}
+        <Show when={!isDesktop()}>
+          <div class="flex justify-center pt-3 pb-1">
+            <div class="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+        </Show>
 
         <div class="px-5 pb-2 pt-1 flex items-center justify-between">
           <h2 class="text-base font-semibold text-fg">
@@ -479,6 +455,7 @@ export default function BudgetSheet(props: Props) {
           </button>
         </div>
       </div>
-    </>
+      )}
+    </SlidePanel>
   );
 }
