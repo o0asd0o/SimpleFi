@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,10 +58,24 @@ var descriptions = map[string][]string{
 }
 
 func main() {
-	dbPath := flag.String("db", "data.db", "path to sqlite db")
+	defaultDB := os.Getenv("DB_PATH")
+	if defaultDB == "" {
+		defaultDB = "data.db"
+	}
+	dbPath := flag.String("db", defaultDB, "path to sqlite db (defaults to $DB_PATH)")
 	perUser := flag.Int("count", 1500, "transactions to generate per user")
 	months := flag.Int("months", 18, "months of history to spread transactions across")
 	flag.Parse()
+
+	log.SetFlags(0)
+	log.SetPrefix("SEED FAILED: ")
+
+	abs, _ := filepath.Abs(*dbPath)
+	if _, err := os.Stat(abs); err != nil {
+		// A missing file would be created silently and seeded into the void.
+		log.Fatalf("no db at %s — pass -db or set DB_PATH (%v)", abs, err)
+	}
+	fmt.Printf("seeding %s\n", abs)
 
 	db, err := store.New(*dbPath)
 	if err != nil {
@@ -105,7 +121,18 @@ func main() {
 		fmt.Printf("seeded %d transactions for %s (user %d/%d)\n", n, u.Username, i+1, len(users))
 	}
 
-	fmt.Println("done. Login with either demo account to see the data.")
+	for _, u := range users {
+		var n int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM transactions WHERE user_id = ?`, u.ID).Scan(&n); err != nil {
+			log.Fatalf("verify %s: %v", u.Username, err)
+		}
+		if n == 0 {
+			log.Fatalf("verify %s: 0 transactions in db after seeding", u.Username)
+		}
+		fmt.Printf("verified %s: %d transactions in db\n", u.Username, n)
+	}
+
+	fmt.Println("SEED OK — login with demo_alex or demo_sam / DemoPass123!")
 }
 
 func getOrRegister(db *sql.DB, du demoUser) (model.User, bool, error) {
