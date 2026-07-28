@@ -86,17 +86,26 @@ export default function App() {
     setActivePartnershipId(null);
   };
 
+  const fullScreenFallback = (
+    <div class="min-h-screen bg-app-bg flex items-center justify-center">
+      <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+  const inlineFallback = (
+    <div class="flex items-center justify-center py-16">
+      <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
   return (
-    <Suspense
-      fallback={
-        <div class="min-h-screen bg-app-bg flex items-center justify-center">
-          <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      }
-    >
+    <>
       <Show
         when={token()}
-        fallback={<LoginScreen onAuthSuccess={handleAuthSuccess} />}
+        fallback={
+          <Suspense fallback={fullScreenFallback}>
+            <LoginScreen onAuthSuccess={handleAuthSuccess} />
+          </Suspense>
+        }
       >
         <div class={isDesktop() ? "flex h-screen bg-app-bg" : ""}>
           {/* Desktop permanent sidebar */}
@@ -174,29 +183,37 @@ export default function App() {
             </Show>
 
             <Show when={activeView() === "analytics"}>
-              <StatBars activePartnershipId={activePartnershipId()} />
+              <Suspense fallback={inlineFallback}>
+                <StatBars activePartnershipId={activePartnershipId()} />
+              </Suspense>
             </Show>
 
             <Show when={activeView() === "recurring"}>
-              <RecurringList />
+              <Suspense fallback={inlineFallback}>
+                <RecurringList />
+              </Suspense>
             </Show>
 
             <Show when={activeView() === "partnerships"}>
-              <PartnershipView />
+              <Suspense fallback={inlineFallback}>
+                <PartnershipView />
+              </Suspense>
             </Show>
 
             <Show when={activeView() === "budgets"}>
-              <BudgetView
-                activePartnershipId={activePartnershipId()}
-                onAddBudget={() => {
-                  setEditingBudget(null);
-                  setIsBudgetSheetOpen(true);
-                }}
-                onEditBudget={(bp) => {
-                  setEditingBudget(bp);
-                  setIsBudgetSheetOpen(true);
-                }}
-              />
+              <Suspense fallback={inlineFallback}>
+                <BudgetView
+                  activePartnershipId={activePartnershipId()}
+                  onAddBudget={() => {
+                    setEditingBudget(null);
+                    setIsBudgetSheetOpen(true);
+                  }}
+                  onEditBudget={(bp) => {
+                    setEditingBudget(bp);
+                    setIsBudgetSheetOpen(true);
+                  }}
+                />
+              </Suspense>
             </Show>
 
             {/* FAB — hidden on partnerships and budgets views */}
@@ -223,16 +240,18 @@ export default function App() {
 
             {/* Budget sheet */}
             <Dismissable when={isBudgetSheetOpen()}>
-              <BudgetSheet
-                onClose={() => {
-                  setIsBudgetSheetOpen(false);
-                  setEditingBudget(null);
-                  setBudgetInitialAccountId(undefined);
-                }}
-                editBudget={editingBudget() ?? undefined}
-                initialAccountId={budgetInitialAccountId()}
-                activePartnershipId={activePartnershipId()}
-              />
+              <Suspense fallback={inlineFallback}>
+                <BudgetSheet
+                  onClose={() => {
+                    setIsBudgetSheetOpen(false);
+                    setEditingBudget(null);
+                    setBudgetInitialAccountId(undefined);
+                  }}
+                  editBudget={editingBudget() ?? undefined}
+                  initialAccountId={budgetInitialAccountId()}
+                  activePartnershipId={activePartnershipId()}
+                />
+              </Suspense>
             </Dismissable>
 
             {/* Transaction sheet */}
@@ -287,6 +306,6 @@ export default function App() {
           </div>
         </Show>
       </Show>
-    </Suspense>
+    </>
   );
 }
