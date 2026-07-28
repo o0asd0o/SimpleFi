@@ -15,6 +15,7 @@ import {
   respondToInvitation,
 } from "../lib/api";
 import InviteModal from "./InviteModal";
+import Dismissable from "../lib/dismiss";
 
 export default function PartnershipView() {
   const queryClient = useQueryClient();
@@ -51,6 +52,15 @@ export default function PartnershipView() {
   const [invitePartnershipId, setInvitePartnershipId] = createSignal<
     string | null
   >(null);
+
+  // The modal stays mounted through its exit animation, after which the signal
+  // is already null — retain the last id so it doesn't read null on the way out.
+  let lastInviteId = "";
+  const inviteId = () => {
+    const id = invitePartnershipId();
+    if (id) lastInviteId = id;
+    return lastInviteId;
+  };
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["partnerships"] });
@@ -384,9 +394,9 @@ export default function PartnershipView() {
       </Show>
 
       {/* Invite modal */}
-      <Show when={invitePartnershipId() !== null}>
+      <Dismissable when={invitePartnershipId() !== null}>
         <InviteModal
-          partnershipId={invitePartnershipId()!}
+          partnershipId={inviteId()}
           onClose={() => setInvitePartnershipId(null)}
           onSuccess={() => {
             setInvitePartnershipId(null);
@@ -395,7 +405,7 @@ export default function PartnershipView() {
             });
           }}
         />
-      </Show>
+      </Dismissable>
     </div>
   );
 }

@@ -1,0 +1,25 @@
+services:
+  simplefi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Coolify generates the domain and injects it here.
+      - SERVICE_FQDN_SIMPLEFI_8080
+      # Coolify generates this once and persists it across redeploys,
+      # so JWTs survive restarts and users stay logged in.
+      - JWT_SECRET=${SERVICE_PASSWORD_JWT}
+      - PORT=8080
+      - DB_PATH=/app/data/data.db
+      - STATIC_DIR=./dist
+    expose:
+      - "8080"
+    # Uncomment for plain `docker compose up` outside Coolify:
+    # ports:
+    #   - "8080:8080"
+    volumes:
+      - simplefi-data:/app/data
+
+volumes:
+  simplefi-data:

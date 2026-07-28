@@ -9,6 +9,7 @@ import {
 import { clsx as cn } from "clsx";
 import AccountModal from "./AccountModal";
 import ManageAccountsModal from "./ManageAccountsModal";
+import Dismissable from "../lib/dismiss";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(
@@ -173,16 +174,16 @@ export default function AccountStrip(props: Props) {
         </For>
       </div>
 
-      <Show when={isModalOpen()}>
+      <Dismissable when={isModalOpen()}>
         <AccountModal onClose={() => setIsModalOpen(false)} />
-      </Show>
+      </Dismissable>
 
-      <Show when={isManageOpen()}>
+      <Dismissable when={isManageOpen()}>
         <ManageAccountsModal
           activePartnershipId={props.activePartnershipId}
           onClose={() => setIsManageOpen(false)}
         />
-      </Show>
+      </Dismissable>
     </div>
   );
 }

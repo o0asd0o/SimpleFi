@@ -3,6 +3,7 @@ import { createQuery } from "@tanstack/solid-query";
 import { clsx as cn } from "clsx";
 import { exportTransactions, fetchInvitations } from "../lib/api";
 import { type ThemeMode } from "../lib/theme";
+import { useClosing } from "../lib/dismiss";
 
 type ViewType = "home" | "analytics" | "budgets" | "recurring" | "partnerships";
 
@@ -20,6 +21,7 @@ type Props = {
 
 export default function SidebarMenu(props: Props) {
   const [isExporting, setIsExporting] = createSignal(false);
+  const closing = useClosing();
 
   const invitationsQuery = createQuery(() => ({
     queryKey: ["invitations"],
@@ -65,7 +67,9 @@ export default function SidebarMenu(props: Props) {
         "flex flex-col bg-sheet-bg",
         props.inline
           ? "w-64 h-full border-r border-dim"
-          : "fixed inset-y-0 right-0 z-50 w-64 sidebar-panel-enter",
+          : "fixed inset-y-0 right-0 z-50 w-64",
+        !props.inline &&
+          (closing() ? "sidebar-panel-exit" : "sidebar-panel-enter"),
       )}
     >
       {/* Header */}
@@ -75,7 +79,16 @@ export default function SidebarMenu(props: Props) {
           "padding-top": "calc(2.5rem + env(safe-area-inset-top, 0px))",
         }}
       >
-        <h2 class="text-lg font-bold text-fg">SimpleFi</h2>
+        <div class="flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt=""
+            width="32"
+            height="32"
+            class="rounded-lg"
+          />
+          <h2 class="text-lg font-bold text-fg">SimpleFi</h2>
+        </div>
       </div>
 
       {/* Menu items */}
@@ -365,7 +378,10 @@ export default function SidebarMenu(props: Props) {
   return (
     <>
       <div
-        class="fixed inset-0 z-40 bg-overlay backdrop-blur-sm sidebar-backdrop-enter"
+        class={cn(
+          "fixed inset-0 z-40 bg-overlay backdrop-blur-sm",
+          closing() ? "backdrop-exit" : "backdrop-enter",
+        )}
         onClick={props.onClose}
         aria-hidden="true"
       />

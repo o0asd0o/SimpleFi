@@ -70,6 +70,13 @@ export default function LoginScreen(props: LoginScreenProps) {
   return (
     <div class="min-h-screen bg-app-bg text-fg flex flex-col items-center justify-center px-6">
       <div class="w-full max-w-sm">
+        <img
+          src="/logo.png"
+          alt=""
+          width="88"
+          height="88"
+          class="mx-auto mb-4 rounded-[22px]"
+        />
         <h1 class="text-3xl font-bold text-center mb-2">SimpleFi</h1>
         <p class="text-fg-3 text-center text-sm mb-8">
           {mode() === "login"

@@ -108,12 +108,30 @@ input[type="number"] {
   }
 }
 
+@keyframes slide-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
 @keyframes panel-slide-in {
   from {
     transform: translateX(100%);
   }
   to {
     transform: translateX(0);
+  }
+}
+
+@keyframes panel-slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
   }
 }
 
@@ -126,7 +144,16 @@ input[type="number"] {
   }
 }
 
-@keyframes sidebar-backdrop-enter {
+@keyframes sidebar-exit {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes backdrop-fade-in {
   from {
     opacity: 0;
   }
@@ -135,7 +162,17 @@ input[type="number"] {
   }
 }
 
+@keyframes backdrop-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  /* Enter */
   .sheet-enter {
     animation: slide-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   }
@@ -150,7 +187,28 @@ input[type="number"] {
     will-change: transform;
   }
 
-  .sidebar-backdrop-enter {
-    animation: sidebar-backdrop-enter 0.2s ease-out;
+  .backdrop-enter {
+    animation: backdrop-fade-in 0.2s ease-out;
+  }
+
+  /* Exit — `forwards` holds the end state for the brief window between the
+     animation finishing and <Dismissable> unmounting the node. */
+  .sheet-exit {
+    animation: slide-down 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    will-change: transform;
+  }
+
+  .panel-exit {
+    animation: panel-slide-out 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    will-change: transform;
+  }
+
+  .sidebar-panel-exit {
+    animation: sidebar-exit 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    will-change: transform;
+  }
+
+  .backdrop-exit {
+    animation: backdrop-fade-out 0.25s ease-out forwards;
   }
 }

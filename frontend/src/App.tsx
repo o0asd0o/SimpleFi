@@ -15,6 +15,7 @@ import AccountStrip from "./components/AccountStrip";
 import RecentList from "./components/RecentList";
 import TransactionSheet from "./components/TransactionSheet";
 import SidebarMenu from "./components/SidebarMenu";
+import Dismissable from "./lib/dismiss";
 import PassphraseModal from "./components/PassphraseModal";
 import ContextSwitcher from "./components/ContextSwitcher";
 
@@ -221,7 +222,7 @@ export default function App() {
             </Show>
 
             {/* Budget sheet */}
-            <Show when={isBudgetSheetOpen()}>
+            <Dismissable when={isBudgetSheetOpen()}>
               <BudgetSheet
                 onClose={() => {
                   setIsBudgetSheetOpen(false);
@@ -232,10 +233,10 @@ export default function App() {
                 initialAccountId={budgetInitialAccountId()}
                 activePartnershipId={activePartnershipId()}
               />
-            </Show>
+            </Dismissable>
 
             {/* Transaction sheet */}
-            <Show when={isSheetOpen()}>
+            <Dismissable when={isSheetOpen()}>
               <TransactionSheet
                 editTransaction={editingTx() ?? undefined}
                 activePartnershipId={activePartnershipId()}
@@ -255,10 +256,10 @@ export default function App() {
                   setIncomeAccountTarget(null);
                 }}
               />
-            </Show>
+            </Dismissable>
 
             {/* Sidebar menu — mobile overlay */}
-            <Show when={isSidebarOpen() && !isDesktop()}>
+            <Dismissable when={isSidebarOpen() && !isDesktop()}>
               <SidebarMenu
                 activeView={activeView()}
                 onNavigate={setActiveView}
@@ -268,7 +269,7 @@ export default function App() {
                 onThemeChange={(t: ThemeMode) => setTheme(t)}
                 activePartnershipId={activePartnershipId()}
               />
-            </Show>
+            </Dismissable>
 
             <Show when={passphrase()}>
               <PassphraseModal

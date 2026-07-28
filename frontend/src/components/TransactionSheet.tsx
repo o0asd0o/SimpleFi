@@ -31,6 +31,7 @@ import { clsx as cn } from "clsx";
 import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 import ManageCategoriesModal from "./ManageCategoriesModal";
 import SlidePanel from "./SlidePanel";
+import Dismissable from "../lib/dismiss";
 
 type Props = {
   onClose: () => void;
@@ -524,12 +525,12 @@ export default function TransactionSheet(props: Props) {
             </div>
           </Show>
 
-          <Show when={showManageCategories()}>
+          <Dismissable when={showManageCategories()}>
             <ManageCategoriesModal
               categoryType={mode() === "income" ? "income" : "expense"}
               onClose={() => setShowManageCategories(false)}
             />
-          </Show>
+          </Dismissable>
 
           {/* Amount input */}
           <label for="amount-input" class="sr-only">
@@ -588,13 +589,19 @@ export default function TransactionSheet(props: Props) {
           </div>
 
           {/* Recurring modal */}
-          <Show when={showRecurringModal()}>
+          <Dismissable when={showRecurringModal()}>
+            {(closing) => (
+              <>
             <div
-              class="fixed inset-0 bg-overlay z-[60] backdrop-blur-sm"
+              class={`fixed inset-0 bg-overlay z-[60] backdrop-blur-sm ${
+                closing() ? "backdrop-exit" : "backdrop-enter"
+              }`}
               onClick={() => setShowRecurringModal(false)}
             />
             <div
-              class="fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet sheet-enter"
+              class={`fixed inset-x-0 bottom-0 z-[70] bg-sheet-bg rounded-t-3xl px-6 pt-4 pb-safe-sheet ${
+                closing() ? "sheet-exit" : "sheet-enter"
+              }`}
               style={{ right: `${scrollbarOffset}px` }}
             >
               <div class="w-10 h-1 bg-handle rounded-full mx-auto mb-6" />
@@ -697,7 +704,9 @@ export default function TransactionSheet(props: Props) {
                 </button>
               </div>
             </div>
-          </Show>
+              </>
+            )}
+          </Dismissable>
 
           {/* Submit button */}
           <button

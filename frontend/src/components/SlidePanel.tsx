@@ -1,6 +1,7 @@
 import { type JSX, onCleanup, onMount } from "solid-js";
 import { getScrollbarOffset, lockBodyScroll } from "../lib/scroll-lock";
 import { createIsDesktop } from "../lib/media";
+import { useClosing } from "../lib/dismiss";
 
 type Props = {
   onClose: () => void;
@@ -19,6 +20,7 @@ type Props = {
 export default function SlidePanel(props: Props) {
   const scrollbarOffset = getScrollbarOffset();
   const isDesktop = createIsDesktop();
+  const closing = useClosing();
   let unlockBodyScroll = () => {};
 
   onMount(() => {
@@ -44,7 +46,9 @@ export default function SlidePanel(props: Props) {
     <>
       {/* Backdrop */}
       <div
-        class={`fixed inset-0 bg-overlay backdrop-blur-sm ${zBackdrop()}`}
+        class={`fixed inset-0 bg-overlay backdrop-blur-sm ${zBackdrop()} ${
+          closing() ? "backdrop-exit" : "backdrop-enter"
+        }`}
         onClick={props.onClose}
         aria-hidden="true"
       />
@@ -56,8 +60,12 @@ export default function SlidePanel(props: Props) {
         aria-label={props.ariaLabel}
         class={
           isDesktop()
-            ? `fixed inset-y-0 right-0 ${zPanel()} ${maxW()} w-full bg-sheet-bg shadow-2xl panel-enter overflow-y-auto`
-            : `fixed inset-x-0 bottom-0 ${zPanel()} bg-sheet-bg rounded-t-3xl sheet-enter max-h-[90vh] overflow-y-auto`
+            ? `fixed inset-y-0 right-0 ${zPanel()} ${maxW()} w-full bg-sheet-bg shadow-2xl overflow-y-auto ${
+                closing() ? "panel-exit" : "panel-enter"
+              }`
+            : `fixed inset-x-0 bottom-0 ${zPanel()} bg-sheet-bg rounded-t-3xl max-h-[90vh] overflow-y-auto ${
+                closing() ? "sheet-exit" : "sheet-enter"
+              }`
         }
         style={{ right: isDesktop() ? undefined : `${scrollbarOffset}px` }}
       >
