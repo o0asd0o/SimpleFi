@@ -1,11 +1,4 @@
-import {
-  createEffect,
-  createSignal,
-  For,
-  onCleanup,
-  onMount,
-  Show,
-} from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import {
   createMutation,
   createQuery,
@@ -20,7 +13,6 @@ import {
   type BudgetProgress,
   type CreateBudgetInput,
 } from "../lib/api";
-import { createSwipeHandlers } from "../lib/swipe";
 import SlidePanel from "./SlidePanel";
 
 type PeriodType = "month" | "year" | "custom";
@@ -56,7 +48,6 @@ const FORM_OPTIONS = {
 
 export default function BudgetSheet(props: Props) {
   const editing = () => props.editBudget;
-  let panelRef: HTMLDivElement | undefined;
 
   const [name, setName] = createSignal(editing()?.name ?? "");
   const [amount, setAmount] = createSignal(editing()?.amount?.toString() ?? "");
@@ -151,25 +142,6 @@ export default function BudgetSheet(props: Props) {
     );
   };
 
-  onMount(() => {
-    // Swipe down to close (mobile only)
-    if (panelRef) {
-      const handlers = createSwipeHandlers({ onSwipeDown: props.onClose });
-      panelRef.addEventListener("touchstart", handlers.onTouchStart, {
-        passive: true,
-      });
-      panelRef.addEventListener("touchmove", handlers.onTouchMove, {
-        passive: true,
-      });
-      panelRef.addEventListener("touchend", handlers.onTouchEnd);
-      onCleanup(() => {
-        panelRef?.removeEventListener("touchstart", handlers.onTouchStart);
-        panelRef?.removeEventListener("touchmove", handlers.onTouchMove);
-        panelRef?.removeEventListener("touchend", handlers.onTouchEnd);
-      });
-    }
-  });
-
   return (
     <SlidePanel
       onClose={props.onClose}
@@ -177,7 +149,7 @@ export default function BudgetSheet(props: Props) {
       maxWidth="max-w-lg"
     >
       {(isDesktop) => (
-        <div ref={panelRef}>
+        <div>
           {/* Drag handle — mobile only */}
           <Show when={!isDesktop()}>
             <div class="flex justify-center pt-3 pb-1">

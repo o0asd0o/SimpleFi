@@ -27,6 +27,11 @@ export const useClosing = () => useContext(ClosingContext);
  * <Show> unmounts on the same tick the signal flips, so exit animations never
  * get to run. Dismissable keeps the children mounted for `duration` ms with
  * useClosing() flipped to true, then unmounts.
+ *
+ * Children must be eagerly imported. The child is created inside a tracked
+ * scope below, so a lazy() child subscribes this insert to its own loading
+ * signal; resolving the chunk re-runs the insert, which creates another lazy
+ * child, forever — the tab freezes instead of opening the overlay.
  */
 export default function Dismissable(props: {
   when: boolean;

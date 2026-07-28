@@ -10,3 +10,4 @@ dist/
 .github
 data.db
 data.db-*
+*.tsbuildinfo

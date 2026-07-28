@@ -11,7 +11,6 @@ import {
   fetchAccounts,
   type BudgetProgress,
 } from "../lib/api";
-import { createSwipeHandlers } from "../lib/swipe";
 
 const fmtCurrency = (n: number) =>
   new Intl.NumberFormat("en-PH", {
@@ -137,23 +136,12 @@ export default function BudgetView(props: Props) {
         <div class="space-y-3">
           <For each={budgetsQuery.data}>
             {(bp) => {
-              const swipeHandlers = createSwipeHandlers({
-                onSwipeLeft: () => {
-                  if (confirm(`Delete "${bp.name}"?`)) {
-                    deleteMutation.mutate(bp.id);
-                  }
-                },
-              });
-
               const isExpanded = () => expandedId() === bp.id;
               const pct = Math.min(bp.percentage, 100);
               const barColor = progressBarColor(bp.percentage);
 
               return (
-                <div
-                  class="bg-surface rounded-2xl p-4 space-y-3"
-                  {...swipeHandlers}
-                >
+                <div class="bg-surface rounded-2xl p-4 space-y-3">
                   {/* Card header */}
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">

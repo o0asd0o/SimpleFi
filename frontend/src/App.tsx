@@ -17,6 +17,9 @@ import TransactionSheet from "./components/TransactionSheet";
 import SidebarMenu from "./components/SidebarMenu";
 import Dismissable from "./lib/dismiss";
 import PassphraseModal from "./components/PassphraseModal";
+// Eager on purpose: a lazy() child inside <Dismissable> re-creates itself
+// forever when the chunk resolves and freezes the tab. See lib/dismiss.tsx.
+import BudgetSheet from "./components/BudgetSheet";
 import ContextSwitcher from "./components/ContextSwitcher";
 
 // Lazy — page-level views only
@@ -25,7 +28,6 @@ const RecurringList = lazy(() => import("./components/RecurringList"));
 const LoginScreen = lazy(() => import("./components/LoginScreen"));
 const PartnershipView = lazy(() => import("./components/PartnershipView"));
 const BudgetView = lazy(() => import("./components/BudgetView"));
-const BudgetSheet = lazy(() => import("./components/BudgetSheet"));
 
 export default function App() {
   const [theme, setTheme] = createThemeSignal();
@@ -240,18 +242,16 @@ export default function App() {
 
             {/* Budget sheet */}
             <Dismissable when={isBudgetSheetOpen()}>
-              <Suspense fallback={inlineFallback}>
-                <BudgetSheet
-                  onClose={() => {
-                    setIsBudgetSheetOpen(false);
-                    setEditingBudget(null);
-                    setBudgetInitialAccountId(undefined);
-                  }}
-                  editBudget={editingBudget() ?? undefined}
-                  initialAccountId={budgetInitialAccountId()}
-                  activePartnershipId={activePartnershipId()}
-                />
-              </Suspense>
+              <BudgetSheet
+                onClose={() => {
+                  setIsBudgetSheetOpen(false);
+                  setEditingBudget(null);
+                  setBudgetInitialAccountId(undefined);
+                }}
+                editBudget={editingBudget() ?? undefined}
+                initialAccountId={budgetInitialAccountId()}
+                activePartnershipId={activePartnershipId()}
+              />
             </Dismissable>
 
             {/* Transaction sheet */}

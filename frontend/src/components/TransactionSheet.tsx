@@ -52,6 +52,9 @@ const formQueryOptions = {
 };
 
 export default function TransactionSheet(props: Props) {
+  // The Repeat modal is its own fixed overlay, so it needs the same
+  // scrollbar compensation SlidePanel applies to the sheet behind it.
+  const scrollbarOffset = getScrollbarOffset();
   const editing = () => props.editTransaction;
   const [amount, setAmount] = createSignal(editing()?.amount?.toString() ?? "");
   const [categoryId, setCategoryId] = createSignal(
