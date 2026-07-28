@@ -13,13 +13,14 @@ WORKDIR /build
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
-RUN CGO_ENABLED=0 go build -ldflags "-X main.buildVersion=$(date +%s)" -o /simplefi .
+RUN CGO_ENABLED=0 go build -ldflags "-X main.buildVersion=$(date +%s)" -o /simplefi . \
+ && CGO_ENABLED=0 go build -o /seed ./cmd/seed
 
 # ── Stage 3: Runtime ────────────────────────────────────────
 FROM alpine:3
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
-COPY --from=backend /simplefi .
+COPY --from=backend /simplefi /seed ./
 COPY --from=frontend /build/dist ./dist
 
 ENV STATIC_DIR=./dist
