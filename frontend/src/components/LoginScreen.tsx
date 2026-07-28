@@ -117,6 +117,28 @@ export default function LoginScreen(props: LoginScreenProps) {
               : "Reset your password"}
         </p>
 
+        {mode() === "login" && (
+          <div class="mb-4 px-4 py-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-sm text-fg-2">
+            <p class="text-fg font-medium mb-1">Just looking around?</p>
+            <p class="text-fg-3">
+              Try a demo account —{" "}
+              <code class="text-purple-300">demo_alex</code> or{" "}
+              <code class="text-purple-300">demo_sam</code>, password{" "}
+              <code class="text-purple-300">DemoPass123!</code>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setUsername("demo_alex");
+                setPassword("DemoPass123!");
+              }}
+              class="mt-2 text-purple-400 hover:text-purple-300"
+            >
+              Fill demo credentials
+            </button>
+          </div>
+        )}
+
         {error() && (
           <div class="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
             {error()}
