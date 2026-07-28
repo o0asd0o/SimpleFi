@@ -9,6 +9,33 @@ type LoginScreenProps = {
   onAuthSuccess: (response: AuthResponse) => void;
 };
 
+function EyeIcon(props: { open: boolean }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      {props.open ? (
+        <>
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+          <circle cx="12" cy="12" r="3" />
+        </>
+      ) : (
+        <>
+          <path d="M9.9 4.24A9.53 9.53 0 0 1 12 4c7 0 11 8 11 8a17.9 17.9 0 0 1-3.29 4.24M6.61 6.61A17.9 17.9 0 0 0 1 12s4 8 11 8a9.53 9.53 0 0 0 5.39-1.61M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+          <path d="M1 1l22 22" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export default function LoginScreen(props: LoginScreenProps) {
   const [mode, setMode] = createSignal<Mode>("login");
   const [username, setUsername] = createSignal("");
@@ -17,6 +44,8 @@ export default function LoginScreen(props: LoginScreenProps) {
   const [passphrase, setPassphrase] = createSignal("");
   const [newPassword, setNewPassword] = createSignal("");
   const [resetDone, setResetDone] = createSignal(false);
+  const [showPassword, setShowPassword] = createSignal(false);
+  const [showNewPassword, setShowNewPassword] = createSignal(false);
 
   const loginMutation = createMutation(() => ({
     mutationFn: () => login(username(), password()),
@@ -41,6 +70,8 @@ export default function LoginScreen(props: LoginScreenProps) {
     setPassphrase("");
     setNewPassword("");
     setResetDone(false);
+    setShowPassword(false);
+    setShowNewPassword(false);
     loginMutation.reset();
     registerMutation.reset();
     resetMutation.reset();
@@ -133,26 +164,48 @@ export default function LoginScreen(props: LoginScreenProps) {
                   onInput={(e) => setPassphrase(e.currentTarget.value)}
                   class={inputClass}
                 />
-                <input
-                  type="password"
-                  placeholder="New password"
-                  value={newPassword()}
-                  onInput={(e) => setNewPassword(e.currentTarget.value)}
-                  class={inputClass}
-                  autocomplete="new-password"
-                />
+                <div class="relative">
+                  <input
+                    type={showNewPassword() ? "text" : "password"}
+                    placeholder="New password"
+                    value={newPassword()}
+                    onInput={(e) => setNewPassword(e.currentTarget.value)}
+                    class={cn(inputClass, "pr-12")}
+                    autocomplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword())}
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-3 hover:text-fg transition-colors"
+                    tabindex="-1"
+                    aria-label={showNewPassword() ? "Hide password" : "Show password"}
+                  >
+                    <EyeIcon open={showNewPassword()} />
+                  </button>
+                </div>
               </>
             ) : (
-              <input
-                type="password"
-                placeholder="Password"
-                value={password()}
-                onInput={(e) => setPassword(e.currentTarget.value)}
-                class={inputClass}
-                autocomplete={
-                  mode() === "register" ? "new-password" : "current-password"
-                }
-              />
+              <div class="relative">
+                <input
+                  type={showPassword() ? "text" : "password"}
+                  placeholder="Password"
+                  value={password()}
+                  onInput={(e) => setPassword(e.currentTarget.value)}
+                  class={cn(inputClass, "pr-12")}
+                  autocomplete={
+                    mode() === "register" ? "new-password" : "current-password"
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword())}
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-fg-3 hover:text-fg transition-colors"
+                  tabindex="-1"
+                  aria-label={showPassword() ? "Hide password" : "Show password"}
+                >
+                  <EyeIcon open={showPassword()} />
+                </button>
+              </div>
             )}
 
             <button
